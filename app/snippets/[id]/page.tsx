@@ -2,6 +2,8 @@ import { notFound } from "next/navigation"
 import { getSnippetByShortId } from "@/lib/snippet"
 import Link from "next/link"
 
+export const dynamic = 'force-dynamic'
+
 export default async function SnippetPage({
   params,
 }: {

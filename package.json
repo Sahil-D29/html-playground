@@ -10,7 +10,8 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "setup": "prisma generate && prisma db push"
+    "setup": "prisma generate && prisma db push",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@codemirror/lang-html": "^6.4.9",
