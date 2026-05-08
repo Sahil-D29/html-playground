@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth"
 import { updateProjectFile, deleteProjectFile } from "@/lib/project"
 import { prisma } from "@/lib/prisma"
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string; fileId: string } }

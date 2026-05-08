@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth"
 import { getSnippetByShortId } from "@/lib/snippet"
 import { Resend } from "resend"
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
