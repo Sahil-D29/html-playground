@@ -187,14 +187,6 @@ export default function Dashboard() {
                   Start Editing
                 </Link>
               </div>
-                <h3 className="text-base font-medium text-white mb-1">No snippets yet</h3>
-                <p className="text-sm text-gray-500 mb-5">
-                  Save your work to create a shareable snippet.
-                </p>
-                <Link href="/" className="btn-primary">
-                  Start Editing
-                </Link>
-              </div>
             ) : (
               <div className="space-y-2">
                 {snippets.map((snippet) => (
