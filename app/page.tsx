@@ -399,7 +399,7 @@ function EditorContent() {
         </div>
       </div>
 
-      <ShareDialog html={html} open={showShare} onClose={() => setShowShare(false)} />
+      <ShareDialog html={html} open={showShare} onClose={() => setShowShare(false)} projectFileId={projectFileId} />
       <SaveDialog
         html={html}
         open={showSave}

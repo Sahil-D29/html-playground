@@ -56,15 +56,17 @@ model VerificationToken {
 }
 
 model Snippet {
-  id         String   @id @default(cuid())
-  shortId    String   @unique
-  title      String   @default("Untitled")
-  html       String
-  permission String   @default("view")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  userId     String?
-  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String       @id @default(cuid())
+  shortId       String       @unique
+  title         String       @default("Untitled")
+  html          String
+  permission    String       @default("view")
+  projectFileId String?
+  projectFile   ProjectFile? @relation(fields: [projectFileId], references: [id], onDelete: SetNull)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  userId        String?
+  user          User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Project {
@@ -79,12 +81,13 @@ model Project {
 }
 
 model ProjectFile {
-  id        String   @id @default(cuid())
-  name      String   @default("index.html")
-  type      String   @default("html")
-  content   String   @default("")
+  id        String    @id @default(cuid())
+  name      String    @default("index.html")
+  type      String    @default("html")
+  content   String    @default("")
   projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  snippets  Snippet[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }

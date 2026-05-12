@@ -8,12 +8,12 @@ export const dynamic = 'force-dynamic'
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    const { html, title, permission } = await req.json()
+    const { html, title, permission, projectFileId } = await req.json()
     if (!html) {
       return NextResponse.json({ error: "HTML content required" }, { status: 400 })
     }
 
-    const snippet = await createSnippet(html, session?.user?.id, title, permission)
+    const snippet = await createSnippet(html, session?.user?.id, title, permission, projectFileId)
     return NextResponse.json(
       { shortId: snippet.shortId, id: snippet.id, permission: snippet.permission },
       { status: 201 }

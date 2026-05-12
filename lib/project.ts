@@ -61,10 +61,20 @@ export async function updateProjectFile(
     where: { id: projectId, userId },
   })
   if (!project) return null
-  return prisma.projectFile.update({
+
+  const file = await prisma.projectFile.update({
     where: { id: fileId },
     data,
   })
+
+  if (data.content !== undefined) {
+    await prisma.snippet.updateMany({
+      where: { projectFileId: fileId },
+      data: { html: data.content },
+    }).catch(() => {})
+  }
+
+  return file
 }
 
 export async function deleteProjectFile(

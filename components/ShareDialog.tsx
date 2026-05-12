@@ -7,9 +7,10 @@ interface ShareDialogProps {
   html: string
   open: boolean
   onClose: () => void
+  projectFileId?: string | null
 }
 
-export default function ShareDialog({ html, open, onClose }: ShareDialogProps) {
+export default function ShareDialog({ html, open, onClose, projectFileId }: ShareDialogProps) {
   const { data: session } = useSession()
   const [shareUrl, setShareUrl] = useState("")
   const [loading, setLoading] = useState(false)
@@ -27,7 +28,7 @@ export default function ShareDialog({ html, open, onClose }: ShareDialogProps) {
       const res = await fetch("/api/snippets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ html, permission }),
+        body: JSON.stringify({ html, permission, projectFileId }),
       })
       if (!res.ok) throw new Error("Failed to create snippet")
       const data = await res.json()
@@ -37,7 +38,7 @@ export default function ShareDialog({ html, open, onClose }: ShareDialogProps) {
     } finally {
       setLoading(false)
     }
-  }, [html, permission])
+  }, [html, permission, projectFileId])
 
   const handleCopy = useCallback(async () => {
     await navigator.clipboard.writeText(shareUrl)
