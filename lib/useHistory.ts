@@ -9,6 +9,7 @@ type HistoryAction =
   | { type: "PUSH"; value: string }
   | { type: "UNDO" }
   | { type: "REDO" }
+  | { type: "GO_TO"; index: number }
 
 interface HistoryState {
   entries: string[]
@@ -31,6 +32,10 @@ function historyReducer(state: HistoryState, action: HistoryAction): HistoryStat
       if (state.index >= state.entries.length - 1) return state
       return { ...state, index: state.index + 1 }
     }
+    case "GO_TO": {
+      if (action.index < 0 || action.index >= state.entries.length) return state
+      return { ...state, index: action.index }
+    }
   }
 }
 
@@ -51,13 +56,21 @@ export function useHistory(initial: string) {
 
   const undo = useCallback(() => dispatch({ type: "UNDO" }), [])
   const redo = useCallback(() => dispatch({ type: "REDO" }), [])
+  const goTo = useCallback((index: number) => dispatch({ type: "GO_TO", index }), [])
+
+  const label = state.index === 0 ? "Original" : `Edit ${state.index}`
 
   return {
     current: state.entries[state.index],
+    entries: state.entries,
+    index: state.index,
     push,
     undo,
     redo,
+    goTo,
     canUndo: state.index > 0,
     canRedo: state.index < state.entries.length - 1,
+    label,
+    total: state.entries.length,
   }
 }

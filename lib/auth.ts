@@ -5,7 +5,7 @@ import { prisma } from "./prisma"
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
-  pages: { signIn: "/" },
+  pages: { signIn: "/auth" },
   providers: [
     CredentialsProvider({
       name: "credentials",

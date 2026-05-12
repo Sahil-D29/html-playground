@@ -6,8 +6,10 @@ import dynamic from "next/dynamic"
 import Preview from "@/components/Preview"
 import ShareDialog from "@/components/ShareDialog"
 import SaveDialog from "@/components/SaveDialog"
+import VersionDropdown from "@/components/VersionDropdown"
 import { useAutosave } from "@/lib/useAutosave"
 import { useHistory } from "@/lib/useHistory"
+import { useServerAutosave } from "@/lib/useServerAutosave"
 import { useToast } from "@/components/Toast"
 import html2canvas from "html2canvas"
 
@@ -47,10 +49,12 @@ function EditorContent() {
   const [fullscreen, setFullscreen] = useState(false)
   const [wordWrap, setWordWrap] = useState(false)
   const [previewEditable, setPreviewEditable] = useState(false)
+  const [autoSave, setAutoSave] = useState(true)
+  const [snippetId, setSnippetId] = useState<string | null>(null)
   const editorRef = useRef<HTMLDivElement>(null)
   const { getDraft, clearDraft } = useAutosave(html)
   const history = useHistory(DEFAULT_HTML)
-  const initialized = useRef(false)
+  const { saving: autoSaving, lastSaved } = useServerAutosave(html, autoSave && !!projectFileId, projectFileId, projectId)
 
   useEffect(() => {
     setHtml(history.current)
@@ -62,8 +66,19 @@ function EditorContent() {
     const fileId = searchParams.get("file")
     const projId = searchParams.get("project")
     const projName = searchParams.get("projectName")
+    const snippetShortId = searchParams.get("snippet")
 
-    if (fileId && projId) {
+    if (snippetShortId) {
+      fetch(`/api/snippets/${snippetShortId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.html) {
+            setHtml(data.html)
+            setSnippetId(data.id)
+          }
+        })
+        .catch(() => toast("Failed to load snippet", "error"))
+    } else if (fileId && projId) {
       fetch(`/api/projects/${projId}/files/${fileId}`)
         .then((res) => res.json())
         .then((file) => {
@@ -81,7 +96,8 @@ function EditorContent() {
       setHtml(draft)
       toast("Draft restored from auto-save", "info")
     }
-  }, [searchParams, getDraft, toast])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, getDraft])
 
   const handleHtmlChange = useCallback(
     (val: string) => {
@@ -103,6 +119,10 @@ function EditorContent() {
     (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "s" && !e.shiftKey) {
         e.preventDefault()
+        if (projectFileId && autoSave) {
+          toast("Auto-saved", "success")
+          return
+        }
         setShowSave(true)
       }
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "S") {
@@ -114,16 +134,14 @@ function EditorContent() {
       }
       if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
         e.preventDefault()
-        const prev = history.canUndo
-        if (prev) history.undo()
+        if (history.canUndo) history.undo()
       }
       if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) {
         e.preventDefault()
-        const next = history.canRedo
-        if (next) history.redo()
+        if (history.canRedo) history.redo()
       }
     },
-    [fullscreen, history]
+    [fullscreen, history, projectFileId, autoSave, toast]
   )
 
   useEffect(() => {
@@ -251,28 +269,30 @@ function EditorContent() {
                 </>
               )}
               <div className="toolbar-separator" />
-              <button
-                onClick={history.undo}
-                disabled={!history.canUndo}
-                className={`btn-icon text-sm ${history.canUndo ? "text-gray-300 hover:text-white" : "text-gray-600"}`}
-                title="Undo (Ctrl+Z)"
-              >
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
-                </svg>
-              </button>
-              <button
-                onClick={history.redo}
-                disabled={!history.canRedo}
-                className={`btn-icon text-sm ${history.canRedo ? "text-gray-300 hover:text-white" : "text-gray-600"}`}
-                title="Redo (Ctrl+Y)"
-              >
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3" />
-                </svg>
-              </button>
+              <VersionDropdown
+                label={history.label}
+                entries={history.entries}
+                currentIndex={history.index}
+                onGoTo={history.goTo}
+                canUndo={history.canUndo}
+                canRedo={history.canRedo}
+                onUndo={history.undo}
+                onRedo={history.redo}
+              />
             </div>
             <div className="flex items-center gap-1">
+              <button
+                onClick={() => setAutoSave((a) => !a)}
+                className={`btn-icon text-sm relative ${autoSave ? "text-emerald-400" : "text-gray-500"}`}
+                title={autoSave ? "Auto-save on" : "Auto-save off"}
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {autoSaving && (
+                  <span className="absolute -top-0.5 -right-0.5 h-2 w-2 animate-ping rounded-full bg-emerald-400" />
+                )}
+              </button>
               <button
                 onClick={() => setWordWrap((w) => !w)}
                 className={`btn-icon text-sm ${wordWrap ? "text-emerald-400" : "text-gray-500"}`}
@@ -319,8 +339,14 @@ function EditorContent() {
               <span className="kbd mx-1">Ctrl+Z</span> Undo
               <span className="kbd mx-1">Ctrl+Y</span> Redo
             </span>
-            <span className="text-xs text-gray-600">
-              {html.length} chars
+            <span className="flex items-center gap-2 text-xs text-gray-600">
+              {projectFileId && autoSave && (
+                <span className={`flex items-center gap-1 ${autoSaving ? "text-yellow-400" : lastSaved ? "text-emerald-400" : "text-gray-600"}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${autoSaving ? "bg-yellow-400" : lastSaved ? "bg-emerald-400" : "bg-gray-600"}`} />
+                  {autoSaving ? "Saving..." : lastSaved ? "Saved" : "Auto"}
+                </span>
+              )}
+              <span>{html.length} chars</span>
             </span>
           </div>
         </div>

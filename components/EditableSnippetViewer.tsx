@@ -1,9 +1,12 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useToast } from "@/components/Toast"
+import Preview from "@/components/Preview"
+import { useHistory } from "@/lib/useHistory"
+import VersionDropdown from "@/components/VersionDropdown"
 
 const Editor = dynamic(() => import("@/components/Editor"), { ssr: false })
 
@@ -20,7 +23,30 @@ export default function EditableSnippetViewer({
 }) {
   const [html, setHtml] = useState(initialHtml)
   const [saving, setSaving] = useState(false)
+  const [previewEditable, setPreviewEditable] = useState(false)
   const { toast } = useToast()
+  const history = useHistory(initialHtml)
+
+  useEffect(() => {
+    setHtml(history.current)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [history.current])
+
+  const handleHtmlChange = useCallback(
+    (val: string) => {
+      setHtml(val)
+      history.push(val)
+    },
+    [history]
+  )
+
+  const handlePreviewEdit = useCallback(
+    (val: string) => {
+      setHtml(val)
+      history.push(val)
+    },
+    [history]
+  )
 
   const handleSave = useCallback(async () => {
     setSaving(true)
@@ -85,23 +111,53 @@ export default function EditableSnippetViewer({
       </div>
       <div className="flex flex-1 min-h-0">
         <div className="flex w-1/2 min-w-0 flex-col border-r border-gray-800/60">
-          <div className="flex items-center border-b border-gray-800/60 bg-surface-light/50 px-3 py-1">
+          <div className="flex items-center gap-1 border-b border-gray-800/60 bg-surface-light/50 px-3 py-1">
             <span className="text-xs font-medium text-gray-500 uppercase">HTML</span>
+            <div className="ml-auto">
+              <VersionDropdown
+                label={history.label}
+                entries={history.entries}
+                currentIndex={history.index}
+                onGoTo={history.goTo}
+                canUndo={history.canUndo}
+                canRedo={history.canRedo}
+                onUndo={history.undo}
+                onRedo={history.redo}
+              />
+            </div>
           </div>
           <div className="flex-1 overflow-hidden">
-            <Editor value={html} onChange={setHtml} lang="html" />
+            <Editor value={html} onChange={handleHtmlChange} lang="html" />
           </div>
         </div>
         <div className="flex w-1/2 min-w-0 flex-col">
-          <div className="flex items-center border-b border-gray-800/60 bg-surface-light/50 px-3 py-1">
-            <span className="text-xs font-medium text-gray-500 uppercase">Preview</span>
+          <div className="flex items-center justify-between border-b border-gray-800/60 bg-surface-light/50 px-3 py-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-gray-500 uppercase">Preview</span>
+              <button
+                onClick={() => setPreviewEditable((e) => !e)}
+                className={`btn-icon text-xs ${previewEditable ? "text-emerald-400 ring-1 ring-emerald-500/40" : "text-gray-500"}`}
+                title="Edit text in preview"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                </svg>
+              </button>
+            </div>
           </div>
+          {previewEditable && (
+            <div className="flex items-center gap-2 bg-emerald-900/20 border-b border-emerald-800/30 px-3 py-1">
+              <svg className="h-3 w-3 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+              </svg>
+              <span className="text-xs text-emerald-300">Editing in preview — changes sync to the editor</span>
+            </div>
+          )}
           <div className="flex-1">
-            <iframe
-              sandbox="allow-scripts"
-              srcDoc={html}
-              title={title || "Shared snippet"}
-              className="h-full w-full bg-white"
+            <Preview
+              html={html}
+              editable={previewEditable}
+              onEdit={handlePreviewEdit}
             />
           </div>
         </div>

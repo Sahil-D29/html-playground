@@ -151,8 +151,16 @@ export default function Dashboard() {
                             href={`/projects/${project.id}`}
                             className="btn-ghost text-sm"
                           >
-                            Open
+                            View
                           </Link>
+                          {project.files.length > 0 && (
+                            <Link
+                              href={`/?project=${project.id}&projectName=${encodeURIComponent(project.name)}&file=${project.files[0].id}`}
+                              className="btn-ghost text-sm text-emerald-400 hover:text-emerald-300"
+                            >
+                              Edit
+                            </Link>
+                          )}
                           <button
                             onClick={() => handleDeleteProject(project.id)}
                             className="btn-ghost text-sm text-red-400 hover:text-red-300"
@@ -206,6 +214,12 @@ export default function Dashboard() {
                           className="btn-ghost text-sm"
                         >
                           View
+                        </Link>
+                        <Link
+                          href={`/?snippet=${snippet.shortId}`}
+                          className="btn-ghost text-sm text-emerald-400 hover:text-emerald-300"
+                        >
+                          Edit
                         </Link>
                         <button
                           onClick={() =>
