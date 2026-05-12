@@ -8,6 +8,7 @@ import ShareDialog from "@/components/ShareDialog"
 import SaveDialog from "@/components/SaveDialog"
 import { useAutosave } from "@/lib/useAutosave"
 import { useToast } from "@/components/Toast"
+import html2canvas from "html2canvas"
 
 const Editor = dynamic(() => import("@/components/Editor"), { ssr: false })
 
@@ -99,6 +100,8 @@ function EditorContent() {
   const handleSave = useCallback(() => setShowSave(true), [])
   const toggleFullscreen = useCallback(() => setFullscreen((f) => !f), [])
 
+  const combinedHtml = html
+
   const handleDownload = useCallback(() => {
     const blob = new Blob([html], { type: "text/html" })
     const url = URL.createObjectURL(blob)
@@ -109,6 +112,48 @@ function EditorContent() {
     URL.revokeObjectURL(url)
     toast("File downloaded", "success")
   }, [html, projectName, toast])
+
+  const handleDownloadImage = useCallback(async () => {
+    const iframe = document.createElement("iframe")
+    iframe.style.position = "fixed"
+    iframe.style.top = "-9999px"
+    iframe.style.left = "-9999px"
+    iframe.style.width = "800px"
+    iframe.style.height = "0px"
+    iframe.style.border = "none"
+    iframe.srcdoc = combinedHtml
+    document.body.appendChild(iframe)
+
+    await new Promise<void>((resolve) => {
+      iframe.onload = () => resolve()
+    })
+
+    const doc = iframe.contentDocument!
+    const height = doc.documentElement.scrollHeight
+    iframe.style.height = `${height}px`
+
+    await new Promise((resolve) => setTimeout(resolve, 300))
+
+    try {
+      const canvas = await html2canvas(doc.documentElement, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        logging: false,
+      })
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), "image/png"))
+      if (blob) {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = projectName ? `${projectName}.png` : "playground.png"
+        a.click()
+        URL.revokeObjectURL(url)
+      }
+      toast("Image downloaded", "success")
+    } finally {
+      document.body.removeChild(iframe)
+    }
+  }, [combinedHtml, projectName, toast])
 
   const handleClearDraft = useCallback(() => {
     clearDraft()
@@ -123,8 +168,6 @@ function EditorContent() {
     clearDraft()
     toast("Reset to default", "info")
   }, [clearDraft, toast])
-
-  const combinedHtml = html
 
   return (
     <>
@@ -211,14 +254,21 @@ function EditorContent() {
         <div className="flex w-1/2 min-w-0 flex-col">
           <div className="flex items-center justify-between border-b border-gray-800/60 bg-surface-light/50 px-3 py-1">
             <span className="text-sm font-medium tracking-wide text-gray-500 uppercase">Preview</span>
-            <button onClick={toggleFullscreen} className="btn-ghost text-xs">
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-1">
+              <button onClick={handleDownloadImage} className="btn-ghost text-xs" title="Download as Image">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+              </button>
+              <button onClick={toggleFullscreen} className="btn-ghost text-xs">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m0 0v4.5m0-4.5L15 15" />
+                </svg>
+              </button>
+            </div>
           </div>
           <div className="flex flex-1 flex-col overflow-hidden">
-            <Preview html={combinedHtml} fullscreen={fullscreen} onToggleFullscreen={toggleFullscreen} />
+            <Preview html={combinedHtml} fullscreen={fullscreen} onToggleFullscreen={toggleFullscreen} onDownloadImage={handleDownloadImage} />
           </div>
         </div>
       </div>
