@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 import { getSnippetByShortId } from "@/lib/snippet"
 import EditableSnippetViewer from "@/components/EditableSnippetViewer"
+import SaveSnippetButton from "@/components/SaveSnippetButton"
 import Link from "next/link"
 
 export const dynamic = 'force-dynamic'
@@ -39,19 +40,22 @@ export default async function SnippetPage({
             </>
           )}
         </span>
-        <Link href="/" className="btn-primary text-xs">
-          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Create Your Own
-        </Link>
+        <div className="flex items-center gap-2">
+          <SaveSnippetButton html={snippet.html} title={snippet.title} />
+          <Link href="/" className="btn-primary text-xs">
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Create Your Own
+          </Link>
+        </div>
       </div>
-      <div className="flex-1">
+      <div className="relative flex-1 min-h-0">
         <iframe
           sandbox="allow-scripts"
           srcDoc={snippet.html}
           title={snippet.title || "Shared snippet"}
-          className="h-full w-full bg-white"
+          className="absolute inset-0 h-full w-full bg-white"
         />
       </div>
     </div>

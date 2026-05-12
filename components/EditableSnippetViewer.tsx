@@ -5,6 +5,7 @@ import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useToast } from "@/components/Toast"
 import Preview from "@/components/Preview"
+import SaveSnippetButton from "@/components/SaveSnippetButton"
 import { useHistory } from "@/lib/useHistory"
 import VersionDropdown from "@/components/VersionDropdown"
 
@@ -84,6 +85,7 @@ export default function EditableSnippetViewer({
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <SaveSnippetButton html={html} title={title} />
           <button
             onClick={handleSave}
             disabled={saving || html === initialHtml}
@@ -126,7 +128,7 @@ export default function EditableSnippetViewer({
               />
             </div>
           </div>
-          <div className="flex-1 overflow-hidden">
+          <div className="relative flex-1 min-h-0">
             <Editor value={html} onChange={handleHtmlChange} lang="html" />
           </div>
         </div>
@@ -153,7 +155,7 @@ export default function EditableSnippetViewer({
               <span className="text-xs text-emerald-300">Editing in preview — changes sync to the editor</span>
             </div>
           )}
-          <div className="flex-1">
+          <div className="relative flex flex-1 min-h-0 flex-col">
             <Preview
               html={html}
               editable={previewEditable}
