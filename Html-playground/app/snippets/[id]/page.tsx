@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import { getSnippetByShortId } from "@/lib/snippet"
+import EditableSnippetViewer from "@/components/EditableSnippetViewer"
 import Link from "next/link"
 
 export const dynamic = 'force-dynamic'
@@ -11,6 +12,17 @@ export default async function SnippetPage({
 }) {
   const snippet = await getSnippetByShortId(params.id)
   if (!snippet) notFound()
+
+  if (snippet.permission === "edit") {
+    return (
+      <EditableSnippetViewer
+        id={snippet.id}
+        shortId={snippet.shortId}
+        title={snippet.title}
+        initialHtml={snippet.html}
+      />
+    )
+  }
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col bg-surface">

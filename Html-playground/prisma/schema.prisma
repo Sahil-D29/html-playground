@@ -56,14 +56,15 @@ model VerificationToken {
 }
 
 model Snippet {
-  id        String   @id @default(cuid())
-  shortId   String   @unique
-  title     String   @default("Untitled")
-  html      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  shortId    String   @unique
+  title      String   @default("Untitled")
+  html       String
+  permission String   @default("view")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Project {

@@ -7,6 +7,7 @@ import Preview from "@/components/Preview"
 import ShareDialog from "@/components/ShareDialog"
 import SaveDialog from "@/components/SaveDialog"
 import { useAutosave } from "@/lib/useAutosave"
+import { useHistory } from "@/lib/useHistory"
 import { useToast } from "@/components/Toast"
 import html2canvas from "html2canvas"
 
@@ -45,8 +46,16 @@ function EditorContent() {
   const [projectName, setProjectName] = useState("")
   const [fullscreen, setFullscreen] = useState(false)
   const [wordWrap, setWordWrap] = useState(false)
+  const [previewEditable, setPreviewEditable] = useState(false)
   const editorRef = useRef<HTMLDivElement>(null)
   const { getDraft, clearDraft } = useAutosave(html)
+  const history = useHistory(DEFAULT_HTML)
+  const initialized = useRef(false)
+
+  useEffect(() => {
+    setHtml(history.current)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [history.current])
 
   useEffect(() => {
     const draft = getDraft()
@@ -74,9 +83,25 @@ function EditorContent() {
     }
   }, [searchParams, getDraft, toast])
 
+  const handleHtmlChange = useCallback(
+    (val: string) => {
+      setHtml(val)
+      history.push(val)
+    },
+    [history]
+  )
+
+  const handlePreviewEdit = useCallback(
+    (val: string) => {
+      setHtml(val)
+      history.push(val)
+    },
+    [history]
+  )
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s" && !e.shiftKey) {
         e.preventDefault()
         setShowSave(true)
       }
@@ -87,8 +112,18 @@ function EditorContent() {
       if (e.key === "Escape" && fullscreen) {
         setFullscreen(false)
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        e.preventDefault()
+        const prev = history.canUndo
+        if (prev) history.undo()
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) {
+        e.preventDefault()
+        const next = history.canRedo
+        if (next) history.redo()
+      }
     },
-    [fullscreen]
+    [fullscreen, history]
   )
 
   useEffect(() => {
@@ -215,6 +250,27 @@ function EditorContent() {
                   <span className="truncate max-w-28 text-sm text-emerald-400 font-medium">{projectName}</span>
                 </>
               )}
+              <div className="toolbar-separator" />
+              <button
+                onClick={history.undo}
+                disabled={!history.canUndo}
+                className={`btn-icon text-sm ${history.canUndo ? "text-gray-300 hover:text-white" : "text-gray-600"}`}
+                title="Undo (Ctrl+Z)"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                </svg>
+              </button>
+              <button
+                onClick={history.redo}
+                disabled={!history.canRedo}
+                className={`btn-icon text-sm ${history.canRedo ? "text-gray-300 hover:text-white" : "text-gray-600"}`}
+                title="Redo (Ctrl+Y)"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3" />
+                </svg>
+              </button>
             </div>
             <div className="flex items-center gap-1">
               <button
@@ -252,7 +308,7 @@ function EditorContent() {
             </div>
           </div>
           <div ref={editorRef} className="flex flex-1 flex-col overflow-hidden">
-            {activeTab === "html" && <Editor value={html} onChange={setHtml} lang="html" />}
+            {activeTab === "html" && <Editor value={html} onChange={handleHtmlChange} lang="html" />}
             {activeTab === "css" && <Editor value={cssCode} onChange={setCssCode} lang="css" />}
             {activeTab === "js" && <Editor value={jsCode} onChange={setJsCode} lang="js" />}
           </div>
@@ -260,6 +316,8 @@ function EditorContent() {
             <span className="text-xs text-gray-600">
               <span className="kbd mr-1">Ctrl+S</span> Save
               <span className="kbd mx-1">Ctrl+Shift+S</span> Share
+              <span className="kbd mx-1">Ctrl+Z</span> Undo
+              <span className="kbd mx-1">Ctrl+Y</span> Redo
             </span>
             <span className="text-xs text-gray-600">
               {html.length} chars
@@ -269,7 +327,18 @@ function EditorContent() {
 
         <div className="flex w-1/2 min-w-0 flex-col">
           <div className="flex items-center justify-between border-b border-gray-800/60 bg-surface-light/50 px-3 py-1">
-            <span className="text-sm font-medium tracking-wide text-gray-500 uppercase">Preview</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium tracking-wide text-gray-500 uppercase">Preview</span>
+              <button
+                onClick={() => setPreviewEditable((e) => !e)}
+                className={`btn-icon text-xs ${previewEditable ? "text-emerald-400 ring-1 ring-emerald-500/40" : "text-gray-500"}`}
+                title="Edit text in preview"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                </svg>
+              </button>
+            </div>
             <div className="flex items-center gap-1">
               <button onClick={handleDownloadImage} className="btn-ghost text-xs" title="Download as Image">
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -283,8 +352,23 @@ function EditorContent() {
               </button>
             </div>
           </div>
+          {previewEditable && (
+            <div className="flex items-center gap-2 bg-emerald-900/20 border-b border-emerald-800/30 px-3 py-1">
+              <svg className="h-3 w-3 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+              </svg>
+              <span className="text-xs text-emerald-300">Editing in preview — changes sync to the editor</span>
+            </div>
+          )}
           <div className="flex flex-1 flex-col overflow-hidden">
-            <Preview html={combinedHtml} fullscreen={fullscreen} onToggleFullscreen={toggleFullscreen} onDownloadImage={handleDownloadImage} />
+            <Preview
+              html={combinedHtml}
+              fullscreen={fullscreen}
+              onToggleFullscreen={toggleFullscreen}
+              onDownloadImage={handleDownloadImage}
+              editable={previewEditable}
+              onEdit={handlePreviewEdit}
+            />
           </div>
         </div>
       </div>

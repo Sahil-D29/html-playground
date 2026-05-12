@@ -18,6 +18,7 @@ export default function ShareDialog({ html, open, onClose }: ShareDialogProps) {
   const [emailSent, setEmailSent] = useState(false)
   const [emailLoading, setEmailLoading] = useState(false)
   const [error, setError] = useState("")
+  const [permission, setPermission] = useState<"view" | "edit">("view")
 
   const handleShare = useCallback(async () => {
     setLoading(true)
@@ -26,7 +27,7 @@ export default function ShareDialog({ html, open, onClose }: ShareDialogProps) {
       const res = await fetch("/api/snippets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ html }),
+        body: JSON.stringify({ html, permission }),
       })
       if (!res.ok) throw new Error("Failed to create snippet")
       const data = await res.json()
@@ -36,7 +37,7 @@ export default function ShareDialog({ html, open, onClose }: ShareDialogProps) {
     } finally {
       setLoading(false)
     }
-  }, [html])
+  }, [html, permission])
 
   const handleCopy = useCallback(async () => {
     await navigator.clipboard.writeText(shareUrl)
@@ -69,6 +70,7 @@ export default function ShareDialog({ html, open, onClose }: ShareDialogProps) {
     setEmail("")
     setEmailSent(false)
     setError("")
+    setPermission("view")
     onClose()
   }, [onClose])
 
@@ -87,13 +89,45 @@ export default function ShareDialog({ html, open, onClose }: ShareDialogProps) {
         </div>
 
         {!shareUrl ? (
-          <button
-            onClick={handleShare}
-            disabled={loading}
-            className="btn-primary w-full"
-          >
-            {loading ? "Creating..." : "Generate Share Link"}
-          </button>
+          <div>
+            <div className="mb-4">
+              <label className="label">Who can edit</label>
+              <div className="flex gap-2 rounded-lg bg-gray-800/50 p-1">
+                <button
+                  onClick={() => setPermission("view")}
+                  className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+                    permission === "view"
+                      ? "bg-gray-700 text-white shadow-sm"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  View only
+                </button>
+                <button
+                  onClick={() => setPermission("edit")}
+                  className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+                    permission === "edit"
+                      ? "bg-gray-700 text-white shadow-sm"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  Can edit
+                </button>
+              </div>
+              <p className="mt-1.5 text-xs text-gray-500">
+                {permission === "view"
+                  ? "Viewers can only see the rendered output."
+                  : "Viewers can see and modify the source code, then save changes."}
+              </p>
+            </div>
+            <button
+              onClick={handleShare}
+              disabled={loading}
+              className="btn-primary w-full"
+            >
+              {loading ? "Creating..." : "Generate Share Link"}
+            </button>
+          </div>
         ) : (
           <>
             <div className="mb-4">
@@ -117,6 +151,12 @@ export default function ShareDialog({ html, open, onClose }: ShareDialogProps) {
                   )}
                 </button>
               </div>
+            </div>
+
+            <div className="mb-4 rounded-lg bg-gray-800/30 px-3 py-2">
+              <p className="text-xs text-gray-400">
+                Permission: <span className="font-medium text-gray-200">{permission === "view" ? "View only" : "Can edit"}</span>
+              </p>
             </div>
 
             {session && (

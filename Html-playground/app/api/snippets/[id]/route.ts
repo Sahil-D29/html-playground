@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { getSnippetByShortId, deleteSnippet } from "@/lib/snippet"
+import { getSnippetByShortId, updateSnippet, deleteSnippet } from "@/lib/snippet"
 
 export const dynamic = 'force-dynamic'
 
@@ -15,6 +15,26 @@ export async function GET(
       return NextResponse.json({ error: "Not found" }, { status: 404 })
     }
     return NextResponse.json(snippet)
+  } catch {
+    return NextResponse.json({ error: "Something went wrong" }, { status: 500 })
+  }
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions)
+    const { html } = await req.json()
+    if (!html) {
+      return NextResponse.json({ error: "HTML content required" }, { status: 400 })
+    }
+    const updated = await updateSnippet(params.id, html, session?.user?.id)
+    if (!updated) {
+      return NextResponse.json({ error: "Not found or not authorized" }, { status: 404 })
+    }
+    return NextResponse.json(updated)
   } catch {
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 })
   }
