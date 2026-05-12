@@ -129,6 +129,21 @@ function EditorContent() {
     })
 
     const doc = iframe.contentDocument!
+
+    const images = Array.from(doc.images)
+    await Promise.all(
+      images.map(
+        (img) =>
+          new Promise<void>((resolve) => {
+            if (img.complete) resolve()
+            else {
+              img.onload = () => resolve()
+              img.onerror = () => resolve()
+            }
+          })
+      )
+    )
+
     const height = doc.documentElement.scrollHeight
     iframe.style.height = `${height}px`
 
@@ -139,6 +154,7 @@ function EditorContent() {
         scale: 2,
         backgroundColor: "#ffffff",
         logging: false,
+        useCORS: true,
       })
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), "image/png"))
       if (blob) {
