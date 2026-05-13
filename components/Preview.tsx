@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useEffect, useState, useCallback } from "react"
+import { useRef, useLayoutEffect, useEffect, useState, useCallback } from "react"
 
 const PREVIEW_EDIT_SCRIPT = `<!--PREVIEW_EDIT_START-->
 <script>
@@ -60,7 +60,7 @@ export default function Preview({
     editableRef.current = !!editable
   }, [editable])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (editable) {
       setCommittedHtml(injectEditScript(html))
     } else {
@@ -70,7 +70,7 @@ export default function Preview({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editable])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (editableRef.current) return
     setCommittedHtml(html)
     setKey((k) => k + 1)
