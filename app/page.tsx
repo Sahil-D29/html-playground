@@ -182,7 +182,6 @@ function EditorContent() {
     iframe.style.width = `${VIEWPORT_WIDTH}px`
     iframe.style.height = `${INITIAL_HEIGHT}px`
     iframe.style.border = "none"
-    iframe.setAttribute("sandbox", "allow-scripts")
     iframe.srcdoc = combinedHtml
     document.body.appendChild(iframe)
 
