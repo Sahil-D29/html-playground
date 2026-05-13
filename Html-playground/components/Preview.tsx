@@ -51,24 +51,25 @@ export default function Preview({
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [key, setKey] = useState(0)
-  const wasEditable = useRef(false)
   const editableRef = useRef(!!editable)
-
-  useEffect(() => {
-    editableRef.current = !!editable
-  }, [editable])
-
+  const htmlRef = useRef(html)
   const [committedHtml, setCommittedHtml] = useState(
     editable ? injectEditScript(html) : html
   )
 
   useEffect(() => {
+    editableRef.current = !!editable
+  }, [editable])
+
+  useEffect(() => {
+    htmlRef.current = html
+  })
+
+  useEffect(() => {
     if (editable) {
-      setCommittedHtml(injectEditScript(html))
-      wasEditable.current = true
+      setCommittedHtml(injectEditScript(htmlRef.current))
     } else {
-      setCommittedHtml(html)
-      wasEditable.current = false
+      setCommittedHtml(htmlRef.current)
     }
     setKey((k) => k + 1)
     // eslint-disable-next-line react-hooks/exhaustive-deps

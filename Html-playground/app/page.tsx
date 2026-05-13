@@ -46,6 +46,7 @@ function EditorContent() {
   const [projectFileId, setProjectFileId] = useState<string | null>(null)
   const [projectId, setProjectId] = useState<string | null>(null)
   const [projectName, setProjectName] = useState("")
+  const [fileName, setFileName] = useState("")
   const [fullscreen, setFullscreen] = useState(false)
   const [wordWrap, setWordWrap] = useState(false)
   const [previewEditable, setPreviewEditable] = useState(false)
@@ -86,6 +87,7 @@ function EditorContent() {
             setHtml(file.content)
             setProjectFileId(fileId)
             setProjectId(projId)
+            setFileName(file.name || "index.html")
           }
         })
         .catch(() => {})
@@ -132,6 +134,9 @@ function EditorContent() {
       if (e.key === "Escape" && fullscreen) {
         setFullscreen(false)
       }
+      if (e.key === "Escape" && previewEditable) {
+        setPreviewEditable(false)
+      }
       if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
         e.preventDefault()
         if (history.canUndo) history.undo()
@@ -141,7 +146,7 @@ function EditorContent() {
         if (history.canRedo) history.redo()
       }
     },
-    [fullscreen, history, projectFileId, autoSave, toast]
+    [fullscreen, history, projectFileId, autoSave, previewEditable, toast]
   )
 
   useEffect(() => {
@@ -167,13 +172,17 @@ function EditorContent() {
   }, [html, projectName, toast])
 
   const handleDownloadImage = useCallback(async () => {
+    const VIEWPORT_WIDTH = 800
+    const INITIAL_HEIGHT = VIEWPORT_WIDTH * 1.5
+
     const iframe = document.createElement("iframe")
     iframe.style.position = "fixed"
     iframe.style.top = "-9999px"
     iframe.style.left = "-9999px"
-    iframe.style.width = "800px"
-    iframe.style.height = "0px"
+    iframe.style.width = `${VIEWPORT_WIDTH}px`
+    iframe.style.height = `${INITIAL_HEIGHT}px`
     iframe.style.border = "none"
+    iframe.setAttribute("sandbox", "allow-scripts")
     iframe.srcdoc = combinedHtml
     document.body.appendChild(iframe)
 
@@ -182,25 +191,42 @@ function EditorContent() {
     })
 
     const doc = iframe.contentDocument!
+    if (!doc) {
+      document.body.removeChild(iframe)
+      return
+    }
 
-    const images = Array.from(doc.images)
-    await Promise.all(
-      images.map(
-        (img) =>
-          new Promise<void>((resolve) => {
-            if (img.complete) resolve()
-            else {
-              img.onload = () => resolve()
-              img.onerror = () => resolve()
-            }
-          })
-      )
-    )
+    await Promise.all([
+      Promise.all(
+        Array.from(doc.images).map(
+          (img) =>
+            new Promise<void>((resolve) => {
+              if (img.complete) resolve()
+              else {
+                img.onload = () => resolve()
+                img.onerror = () => resolve()
+              }
+            })
+        )
+      ),
+      doc.fonts?.ready ?? Promise.resolve(),
+    ])
 
-    const height = doc.documentElement.scrollHeight
-    iframe.style.height = `${height}px`
-
-    await new Promise((resolve) => setTimeout(resolve, 300))
+    await new Promise<void>((resolve) => {
+      let frames = 0
+      function check() {
+        frames++
+        const bodyHeight = doc.body?.scrollHeight ?? 0
+        const htmlHeight = doc.documentElement.scrollHeight
+        const maxHeight = Math.max(bodyHeight, htmlHeight)
+        if (maxHeight > 0 && doc.body?.offsetHeight !== undefined) {
+          iframe.style.height = `${maxHeight}px`
+        }
+        if (frames >= 3) { resolve(); return }
+        requestAnimationFrame(check)
+      }
+      requestAnimationFrame(check)
+    })
 
     try {
       const canvas = await html2canvas(doc.documentElement, {
@@ -266,6 +292,12 @@ function EditorContent() {
                 <>
                   <div className="toolbar-separator" />
                   <span className="truncate max-w-28 text-sm text-emerald-400 font-medium">{projectName}</span>
+                </>
+              )}
+              {fileName && (
+                <>
+                  <div className="toolbar-separator" />
+                  <span className="truncate max-w-28 text-xs text-gray-400">{fileName}</span>
                 </>
               )}
               <div className="toolbar-separator" />
@@ -384,6 +416,12 @@ function EditorContent() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
               </svg>
               <span className="text-xs text-emerald-300">Editing in preview — changes sync to the editor</span>
+              <button
+                onClick={() => setPreviewEditable(false)}
+                className="ml-auto btn-ghost text-xs text-emerald-300 hover:text-emerald-200"
+              >
+                Done
+              </button>
             </div>
           )}
           <div className="flex flex-1 flex-col overflow-hidden">
@@ -407,6 +445,7 @@ function EditorContent() {
         projectFileId={projectFileId}
         projectId={projectId}
         projectName={projectName}
+        initialFileName={fileName}
       />
     </>
   )

@@ -19,6 +19,7 @@ interface SaveDialogProps {
   projectFileId?: string | null
   projectId?: string | null
   projectName?: string
+  initialFileName?: string
 }
 
 export default function SaveDialog({
@@ -28,6 +29,7 @@ export default function SaveDialog({
   projectFileId: initialFileId,
   projectId: initialProjectId,
   projectName: initialProjectName,
+  initialFileName,
 }: SaveDialogProps) {
   const { data: session } = useSession()
   const router = useRouter()
@@ -36,7 +38,7 @@ export default function SaveDialog({
   )
   const [projects, setProjects] = useState<Project[]>([])
   const [selectedProject, setSelectedProject] = useState(initialProjectId || "")
-  const [fileName, setFileName] = useState("index.html")
+  const [fileName, setFileName] = useState(initialFileName || "index.html")
   const [snippetTitle, setSnippetTitle] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -79,7 +81,7 @@ export default function SaveDialog({
             {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ content: html }),
+              body: JSON.stringify({ content: html, name: fileName.trim() || undefined }),
             }
           )
           if (!res.ok) throw new Error("Failed to update file")
@@ -182,9 +184,21 @@ export default function SaveDialog({
               )}
 
               {isEditingFile ? (
-                <p className="text-xs text-gray-500 mb-4">
-                  Updating <span className="text-gray-300 font-medium">{initialProjectName || "file"}</span> in project.
-                </p>
+                <div>
+                  <p className="text-xs text-gray-500 mb-4">
+                    Updating <span className="text-gray-300 font-medium">{initialFileName || fileName || "file"}</span> in <span className="text-gray-300 font-medium">{initialProjectName || "project"}</span>.
+                  </p>
+                  <div className="mb-4">
+                    <label className="label">File Name</label>
+                    <input
+                      type="text"
+                      value={fileName}
+                      onChange={(e) => setFileName(e.target.value)}
+                      placeholder="index.html"
+                      className="input"
+                    />
+                  </div>
+                </div>
               ) : mode === "snippet" ? (
                 <div>
                   <div className="mb-4">
