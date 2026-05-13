@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 
     const snippet = await createSnippet(html, session?.user?.id, title, permission, projectFileId)
     return NextResponse.json(
-      { shortId: snippet.shortId, id: snippet.id, permission: snippet.permission },
+      { shortId: snippet.shortId, id: snippet.id, permission: snippet.permission, title: snippet.title },
       { status: 201 }
     )
   } catch {

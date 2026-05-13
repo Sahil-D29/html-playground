@@ -20,6 +20,7 @@ interface SaveDialogProps {
   projectId?: string | null
   projectName?: string
   initialFileName?: string
+  onSaved?: (data: { title?: string; shortId?: string; id?: string }) => void
 }
 
 export default function SaveDialog({
@@ -30,6 +31,7 @@ export default function SaveDialog({
   projectId: initialProjectId,
   projectName: initialProjectName,
   initialFileName,
+  onSaved,
 }: SaveDialogProps) {
   const { data: session } = useSession()
   const router = useRouter()
@@ -72,6 +74,8 @@ export default function SaveDialog({
           }),
         })
         if (!res.ok) throw new Error("Failed to save snippet")
+        const data = await res.json()
+        onSaved?.({ title: data.title, shortId: data.shortId, id: data.id })
       } else {
         if (!selectedProject) throw new Error("Select a project")
         const isUpdate = !!initialFileId
@@ -85,6 +89,7 @@ export default function SaveDialog({
             }
           )
           if (!res.ok) throw new Error("Failed to update file")
+          onSaved?.({ title: fileName.trim() || "index.html" })
         } else {
           const res = await fetch(`/api/projects/${selectedProject}/files`, {
             method: "POST",
@@ -96,6 +101,7 @@ export default function SaveDialog({
             }),
           })
           if (!res.ok) throw new Error("Failed to save file")
+          onSaved?.({ title: fileName.trim() || "index.html" })
         }
       }
       setSaved(true)
@@ -105,7 +111,7 @@ export default function SaveDialog({
     } finally {
       setLoading(false)
     }
-  }, [mode, html, snippetTitle, selectedProject, fileName, router, initialFileId])
+  }, [mode, html, snippetTitle, selectedProject, fileName, router, initialFileId, onSaved])
 
   const handleClose = useCallback(() => {
     setMode(initialFileId ? "project" : "snippet")

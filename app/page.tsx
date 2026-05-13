@@ -52,6 +52,7 @@ function EditorContent() {
   const [previewEditable, setPreviewEditable] = useState(false)
   const [autoSave, setAutoSave] = useState(true)
   const [snippetId, setSnippetId] = useState<string | null>(null)
+  const [snippetTitle, setSnippetTitle] = useState("")
   const editorRef = useRef<HTMLDivElement>(null)
   const { getDraft, clearDraft } = useAutosave(html)
   const history = useHistory(DEFAULT_HTML)
@@ -76,6 +77,8 @@ function EditorContent() {
           if (data.html) {
             setHtml(data.html)
             setSnippetId(data.id)
+            setSnippetTitle(data.title || "")
+            setProjectName(data.title || "")
           }
         })
         .catch(() => toast("Failed to load snippet", "error"))
@@ -299,6 +302,12 @@ function EditorContent() {
                   <span className="truncate max-w-28 text-xs text-gray-400">{fileName}</span>
                 </>
               )}
+              {snippetTitle && !projectName && (
+                <>
+                  <div className="toolbar-separator" />
+                  <span className="truncate max-w-28 text-xs text-emerald-400 font-medium">{snippetTitle}</span>
+                </>
+              )}
               <div className="toolbar-separator" />
               <VersionDropdown
                 label={history.label}
@@ -445,6 +454,10 @@ function EditorContent() {
         projectId={projectId}
         projectName={projectName}
         initialFileName={fileName}
+        onSaved={(data) => {
+          if (data.title) setSnippetTitle(data.title)
+          if (data.title && !projectName) setProjectName(data.title)
+        }}
       />
     </>
   )
