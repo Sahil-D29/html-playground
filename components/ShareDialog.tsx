@@ -157,7 +157,7 @@ export default function ShareDialog({ html, open, onClose, projectFileId, snippe
           <>
             <div className="mb-4">
               <label className="label">Share Link</label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   readOnly
                   value={shareUrl}
@@ -205,7 +205,7 @@ export default function ShareDialog({ html, open, onClose, projectFileId, snippe
             {session && (
               <div className="border-t border-gray-200 dark:border-gray-800/60 pt-4">
                 <label className="label">Send via Email</label>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="email"
                     value={email}

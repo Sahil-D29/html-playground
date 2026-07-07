@@ -34,6 +34,7 @@ export default function ProjectPage() {
   const [editingName, setEditingName] = useState("")
   const [renaming, setRenaming] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth")
@@ -107,7 +108,31 @@ export default function ProjectPage() {
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] bg-gray-50 dark:bg-surface">
-      <aside className="flex w-64 flex-col border-r border-gray-200 dark:border-gray-800/60 bg-gray-50 dark:bg-surface-light/30">
+      {/* Mobile hamburger button */}
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="fixed top-16 left-2 z-50 md:hidden btn-icon bg-white dark:bg-surface-light shadow-sm border border-gray-200 dark:border-gray-800/60"
+      >
+        <svg className="h-4 w-4 text-gray-700 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          {sidebarOpen ? (
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          ) : (
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+          )}
+        </svg>
+      </button>
+
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <aside className={`flex w-64 flex-col border-r border-gray-200 dark:border-gray-800/60 bg-gray-50 dark:bg-surface-light/30 z-40 transition-transform duration-200 ${
+        sidebarOpen ? "fixed top-14 left-0 bottom-0 md:relative md:translate-x-0" : "fixed -translate-x-full md:relative md:translate-x-0"
+      }`}>
         <div className="flex items-center gap-2 border-b border-gray-200 dark:border-gray-800/60 px-3 py-2.5">
           {renaming ? (
             <div className="flex flex-1 gap-1">
@@ -172,7 +197,10 @@ export default function ProjectPage() {
               {project.files.map((file) => (
                 <div key={file.id} className="group">
                   <button
-                    onClick={() => setActiveFile(file)}
+                    onClick={() => {
+                      setActiveFile(file)
+                      setSidebarOpen(false)
+                    }}
                     className={`w-full rounded-md px-2 py-1.5 text-left text-xs transition-colors ${
                       activeFile?.id === file.id
                         ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"

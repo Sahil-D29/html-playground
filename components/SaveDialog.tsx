@@ -230,7 +230,7 @@ export default function SaveDialog({
                     <div className="mb-4">
                       <label className="label">Project</label>
                       {projects.length > 0 ? (
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <select
                             value={selectedProject}
                             onChange={(e) => setSelectedProject(e.target.value)}

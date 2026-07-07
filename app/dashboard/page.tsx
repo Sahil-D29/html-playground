@@ -70,7 +70,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-gray-50 dark:bg-surface">
       <div className="mx-auto max-w-5xl px-4 py-8 animate-fade-in">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Dashboard</h1>
             <p className="mt-1 text-sm text-gray-500">Manage your projects and snippets</p>
@@ -146,7 +146,7 @@ export default function Dashboard() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                           <Link
                             href={`/projects/${project.id}`}
                             className="btn-ghost text-sm"
@@ -208,7 +208,7 @@ export default function Dashboard() {
                           {new Date(snippet.createdAt).toLocaleDateString()}
                         </p>
                       </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                         <Link
                           href={`/snippets/${snippet.shortId}`}
                           className="btn-ghost text-sm"

@@ -33,6 +33,7 @@ const DEFAULT_HTML = `<!DOCTYPE html>
 </html>`
 
 type EditorTab = "html" | "css" | "js"
+type MobileView = "editor" | "preview"
 
 function EditorContent() {
   const searchParams = useSearchParams()
@@ -41,6 +42,7 @@ function EditorContent() {
   const [cssCode, setCssCode] = useState("")
   const [jsCode, setJsCode] = useState("")
   const [activeTab, setActiveTab] = useState<EditorTab>("html")
+  const [mobileView, setMobileView] = useState<MobileView>("editor")
   const [showShare, setShowShare] = useState(false)
   const [showSave, setShowSave] = useState(false)
   const [projectFileId, setProjectFileId] = useState<string | null>(null)
@@ -270,8 +272,22 @@ function EditorContent() {
 
   return (
     <>
-      <div className="flex h-[calc(100vh-3.5rem)]">
-        <div className="flex w-1/2 min-w-0 flex-col border-r border-gray-200 dark:border-gray-800/60">
+      <div className="flex h-[calc(100vh-3.5rem)] flex-col md:flex-row">
+        <div className={`flex min-w-0 flex-col border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-800/60 ${mobileView === "editor" ? "flex" : "hidden"} md:flex h-1/2 md:h-auto`}>
+          <div className="flex md:hidden items-center border-b border-gray-200 dark:border-gray-800/60 bg-gray-50 dark:bg-surface-light/50 px-3 py-1">
+            <button
+              onClick={() => setMobileView("editor")}
+              className={`flex-1 text-center py-1.5 text-xs font-medium ${mobileView === "editor" ? "text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-500" : "text-gray-500"}`}
+            >
+              Editor
+            </button>
+            <button
+              onClick={() => setMobileView("preview")}
+              className={`flex-1 text-center py-1.5 text-xs font-medium ${mobileView === "preview" ? "text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-500" : "text-gray-500"}`}
+            >
+              Preview
+            </button>
+          </div>
           <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800/60 bg-gray-50 dark:bg-surface-light/50 px-3 py-1">
             <div className="flex items-center gap-1">
               <button
@@ -292,35 +308,33 @@ function EditorContent() {
               >
                 JS
               </button>
-                {projectName && (
-                <>
-                  <div className="toolbar-separator" />
-                  <span className="truncate max-w-28 text-sm text-emerald-600 dark:text-emerald-400 font-medium">{projectName}</span>
-                </>
-              )}
+              <div className="toolbar-separator hidden md:block" />
+              <span className="hidden md:inline truncate max-w-28 text-sm text-emerald-600 dark:text-emerald-400 font-medium">{projectName}</span>
               {fileName && (
                 <>
-                  <div className="toolbar-separator" />
-                  <span className="truncate max-w-28 text-xs text-gray-500 dark:text-gray-400">{fileName}</span>
+                  <div className="toolbar-separator hidden md:block" />
+                  <span className="hidden md:inline truncate max-w-28 text-xs text-gray-500 dark:text-gray-400">{fileName}</span>
                 </>
               )}
               {snippetTitle && !projectName && (
                 <>
-                  <div className="toolbar-separator" />
-                  <span className="truncate max-w-28 text-xs text-emerald-600 dark:text-emerald-400 font-medium">{snippetTitle}</span>
+                  <div className="toolbar-separator hidden md:block" />
+                  <span className="hidden md:inline truncate max-w-28 text-xs text-emerald-600 dark:text-emerald-400 font-medium">{snippetTitle}</span>
                 </>
               )}
-              <div className="toolbar-separator" />
-              <VersionDropdown
-                label={history.label}
-                entries={history.entries}
-                currentIndex={history.index}
-                onGoTo={history.goTo}
-                canUndo={history.canUndo}
-                canRedo={history.canRedo}
-                onUndo={history.undo}
-                onRedo={history.redo}
-              />
+              <div className="toolbar-separator hidden md:block" />
+              <div className="hidden md:block">
+                <VersionDropdown
+                  label={history.label}
+                  entries={history.entries}
+                  currentIndex={history.index}
+                  onGoTo={history.goTo}
+                  canUndo={history.canUndo}
+                  canRedo={history.canRedo}
+                  onUndo={history.undo}
+                  onRedo={history.redo}
+                />
+              </div>
             </div>
             <div className="flex items-center gap-1">
               <button
@@ -337,14 +351,14 @@ function EditorContent() {
               </button>
               <button
                 onClick={() => setWordWrap((w) => !w)}
-                className={`btn-icon text-sm ${wordWrap ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500"}`}
+                className={`btn-icon text-sm hidden sm:inline-flex ${wordWrap ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500"}`}
                 title="Toggle word wrap"
               >
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h10.5m0 0l-3-3m3 3l-3 3m-7.5 3h12" />
                 </svg>
               </button>
-              <button onClick={handleReset} className="btn-icon text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" title="Reset">
+              <button onClick={handleReset} className="btn-icon text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hidden sm:inline-flex" title="Reset">
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
                 </svg>
@@ -354,7 +368,7 @@ function EditorContent() {
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Save
+                <span className="hidden sm:inline">Save</span>
               </button>
               <button onClick={handleDownload} className="btn-ghost text-sm" title="Download HTML">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -365,7 +379,7 @@ function EditorContent() {
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
                 </svg>
-                Share
+                <span className="hidden sm:inline">Share</span>
               </button>
             </div>
           </div>
@@ -375,7 +389,7 @@ function EditorContent() {
             {activeTab === "js" && <Editor value={jsCode} onChange={setJsCode} lang="js" />}
           </div>
           <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-800/60 bg-gray-50 dark:bg-surface-light/30 px-3 py-1">
-            <span className="text-xs text-gray-500 dark:text-gray-600">
+            <span className="text-xs text-gray-500 dark:text-gray-600 hidden md:inline">
               <span className="kbd mr-1">Ctrl+S</span> Save
               <span className="kbd mx-1">Ctrl+Shift+S</span> Share
               <span className="kbd mx-1">Ctrl+Z</span> Undo
@@ -393,7 +407,21 @@ function EditorContent() {
           </div>
         </div>
 
-        <div className="flex w-1/2 min-w-0 flex-col">
+        <div className={`flex min-w-0 flex-col ${mobileView === "preview" ? "flex" : "hidden"} md:flex h-1/2 md:h-auto`}>
+          <div className="flex md:hidden items-center border-b border-gray-200 dark:border-gray-800/60 bg-gray-50 dark:bg-surface-light/50 px-3 py-1">
+            <button
+              onClick={() => setMobileView("editor")}
+              className={`flex-1 text-center py-1.5 text-xs font-medium ${mobileView === "editor" ? "text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-500" : "text-gray-500"}`}
+            >
+              Editor
+            </button>
+            <button
+              onClick={() => setMobileView("preview")}
+              className={`flex-1 text-center py-1.5 text-xs font-medium ${mobileView === "preview" ? "text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-500" : "text-gray-500"}`}
+            >
+              Preview
+            </button>
+          </div>
           <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800/60 bg-gray-50 dark:bg-surface-light/50 px-3 py-1">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium tracking-wide text-gray-500 uppercase">Preview</span>
