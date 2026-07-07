@@ -11,8 +11,6 @@ import VersionDropdown from "@/components/VersionDropdown"
 
 const Editor = dynamic(() => import("@/components/Editor"), { ssr: false })
 
-type Panel = "code" | "preview"
-
 export default function EditableSnippetViewer({
   id,
   shortId,
@@ -27,7 +25,6 @@ export default function EditableSnippetViewer({
   const [html, setHtml] = useState(initialHtml)
   const [saving, setSaving] = useState(false)
   const [previewEditable, setPreviewEditable] = useState(false)
-  const [mobilePanel, setMobilePanel] = useState<Panel>("code")
   const { toast } = useToast()
   const history = useHistory(initialHtml)
 
@@ -115,35 +112,10 @@ export default function EditableSnippetViewer({
           </Link>
         </div>
       </div>
-      {/* Mobile Editor/Preview toggle tabs */}
-      <div className="flex md:hidden border-b border-gray-200 dark:border-gray-800/60 bg-white/80 dark:bg-surface-light/80">
-        <button
-          onClick={() => setMobilePanel("code")}
-          className={`flex-1 px-3 py-2 text-xs font-medium text-center transition-colors ${
-            mobilePanel === "code"
-              ? "text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-500"
-              : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-          }`}
-        >
-          Code
-        </button>
-        <button
-          onClick={() => setMobilePanel("preview")}
-          className={`flex-1 px-3 py-2 text-xs font-medium text-center transition-colors ${
-            mobilePanel === "preview"
-              ? "text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-500"
-              : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-          }`}
-        >
-          Preview
-        </button>
-      </div>
 
-      <div className="flex flex-1 min-h-0 min-h-0 flex-col md:flex-row">
+      <div className="flex flex-1 min-h-0 flex-col md:flex-row">
         {/* Code panel */}
-        <div className={`flex min-w-0 flex-col border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-800/60 ${
-          mobilePanel === "code" ? "flex" : "hidden md:flex"
-        } md:w-1/2 md:flex-1 h-1/2 md:h-auto`}>
+        <div className="flex min-w-0 flex-col border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-800/60 md:w-1/2 md:flex-1 h-1/2 md:h-auto">
           <div className="flex items-center gap-1 border-b border-gray-200 dark:border-gray-800/60 bg-white/50 dark:bg-surface-light/50 px-3 py-1">
             <span className="text-xs font-medium text-gray-500 uppercase">HTML</span>
             <div className="ml-auto">
@@ -164,9 +136,7 @@ export default function EditableSnippetViewer({
           </div>
         </div>
         {/* Preview panel */}
-        <div className={`flex min-w-0 flex-col ${
-          mobilePanel === "preview" ? "flex" : "hidden md:flex"
-        } md:w-1/2 md:flex-1 h-1/2 md:h-auto`}>
+        <div className="flex min-w-0 flex-col md:w-1/2 md:flex-1 h-1/2 md:h-auto">
           <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800/60 bg-white/50 dark:bg-surface-light/50 px-3 py-1">
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-gray-500 uppercase">Preview</span>

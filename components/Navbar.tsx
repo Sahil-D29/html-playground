@@ -11,11 +11,11 @@ export default function Navbar() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-40 mx-4 mt-3 rounded-2xl border border-gray-200 dark:border-white/5 bg-white/80 dark:bg-surface-light/80 backdrop-blur-xl shadow-lg shadow-gray-200/50 dark:shadow-black/20">
       <div className="flex h-10 items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-white">
-          <svg className="h-5 w-5 text-emerald-500 dark:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+        <Link href="/" className="flex items-center gap-2 text-sm sm:text-base font-semibold text-gray-900 dark:text-white">
+          <svg className="h-5 w-5 text-emerald-500 dark:text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
           </svg>
-          <span className="hidden sm:inline">HTML Playground</span>
+          <span className="truncate">HTML Playground</span>
         </Link>
 
         <div className="flex items-center gap-0.5">

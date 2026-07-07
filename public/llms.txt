@@ -1,0 +1,35 @@
+# HTML Playground
+
+> Free online HTML, CSS, and JavaScript editor with live preview.
+
+## About
+
+HTML Playground is a browser-based code editor for writing HTML, CSS, and JavaScript. It provides real-time preview, snippet sharing, and project organization — no local setup required.
+
+## Key Features
+
+- Live HTML, CSS, and JavaScript editing with instant browser preview
+- Shareable snippet links with public/private permissions
+- Dark and light mode themes
+- Mobile responsive — edit on phone or tablet
+- Save snippets without an account, or sign up to organize projects
+- Download snippets as HTML files
+
+## API Endpoints
+
+- `POST /api/snippets` — Create a new snippet
+- `GET /api/snippets/[shortId]` — Fetch a snippet
+- `PATCH /api/snippets/[shortId]` — Update a snippet
+- `DELETE /api/snippets/[shortId]` — Delete a snippet
+
+## Pages
+
+- `/` — Main editor with live preview
+- `/auth` — Sign in or create an account
+- `/dashboard` — Manage your saved snippets (requires auth)
+- `/faq` — Frequently asked questions
+- `/snippets/[id]` — View or edit a shared snippet
+
+## Contact
+
+For questions or feedback, open an issue on GitHub.

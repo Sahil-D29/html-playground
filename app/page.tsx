@@ -33,7 +33,6 @@ const DEFAULT_HTML = `<!DOCTYPE html>
 </html>`
 
 type EditorTab = "html" | "css" | "js"
-type MobileView = "editor" | "preview"
 
 function EditorContent() {
   const searchParams = useSearchParams()
@@ -42,7 +41,6 @@ function EditorContent() {
   const [cssCode, setCssCode] = useState("")
   const [jsCode, setJsCode] = useState("")
   const [activeTab, setActiveTab] = useState<EditorTab>("html")
-  const [mobileView, setMobileView] = useState<MobileView>("editor")
   const [showShare, setShowShare] = useState(false)
   const [showSave, setShowSave] = useState(false)
   const [projectFileId, setProjectFileId] = useState<string | null>(null)
@@ -273,21 +271,7 @@ function EditorContent() {
   return (
     <>
       <div className="flex h-[calc(100vh-3.5rem)] flex-col md:flex-row">
-        <div className={`flex min-w-0 flex-col border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-800/60 ${mobileView === "editor" ? "flex" : "hidden"} md:flex h-1/2 md:h-auto`}>
-          <div className="flex md:hidden items-center border-b border-gray-200 dark:border-gray-800/60 bg-gray-50 dark:bg-surface-light/50 px-3 py-1">
-            <button
-              onClick={() => setMobileView("editor")}
-              className={`flex-1 text-center py-1.5 text-xs font-medium ${mobileView === "editor" ? "text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-500" : "text-gray-500"}`}
-            >
-              Editor
-            </button>
-            <button
-              onClick={() => setMobileView("preview")}
-              className={`flex-1 text-center py-1.5 text-xs font-medium ${mobileView === "preview" ? "text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-500" : "text-gray-500"}`}
-            >
-              Preview
-            </button>
-          </div>
+        <div className="flex min-w-0 flex-col border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-800/60 h-1/2 md:h-auto">
           <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800/60 bg-gray-50 dark:bg-surface-light/50 px-3 py-1">
             <div className="flex items-center gap-1">
               <button
@@ -407,21 +391,7 @@ function EditorContent() {
           </div>
         </div>
 
-        <div className={`flex min-w-0 flex-col ${mobileView === "preview" ? "flex" : "hidden"} md:flex h-1/2 md:h-auto`}>
-          <div className="flex md:hidden items-center border-b border-gray-200 dark:border-gray-800/60 bg-gray-50 dark:bg-surface-light/50 px-3 py-1">
-            <button
-              onClick={() => setMobileView("editor")}
-              className={`flex-1 text-center py-1.5 text-xs font-medium ${mobileView === "editor" ? "text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-500" : "text-gray-500"}`}
-            >
-              Editor
-            </button>
-            <button
-              onClick={() => setMobileView("preview")}
-              className={`flex-1 text-center py-1.5 text-xs font-medium ${mobileView === "preview" ? "text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-500" : "text-gray-500"}`}
-            >
-              Preview
-            </button>
-          </div>
+        <div className="flex min-w-0 flex-col h-1/2 md:h-auto">
           <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800/60 bg-gray-50 dark:bg-surface-light/50 px-3 py-1">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium tracking-wide text-gray-500 uppercase">Preview</span>
