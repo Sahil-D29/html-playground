@@ -52,6 +52,29 @@ export async function updateSnippet(id: string, html: string, userId?: string) {
   return updated
 }
 
+export async function updateSnippetByShortId(shortId: string, html: string, userId?: string, permission?: string) {
+  const snippet = await prisma.snippet.findUnique({ where: { shortId } })
+  if (!snippet) return null
+  if (snippet.userId && snippet.userId !== userId) return null
+
+  const data: { html: string; permission?: string } = { html }
+  if (permission) data.permission = permission
+
+  const updated = await prisma.snippet.update({
+    where: { shortId },
+    data,
+  })
+
+  if (snippet.projectFileId) {
+    await prisma.projectFile.update({
+      where: { id: snippet.projectFileId },
+      data: { content: html },
+    }).catch(() => {})
+  }
+
+  return updated
+}
+
 export async function updateSnippetsByProjectFile(fileId: string, content: string) {
   return prisma.snippet.updateMany({
     where: { projectFileId: fileId },

@@ -52,7 +52,7 @@ export default function EditableSnippetViewer({
   const handleSave = useCallback(async () => {
     setSaving(true)
     try {
-      const res = await fetch(`/api/snippets/${id}`, {
+      const res = await fetch(`/api/snippets/${shortId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ html }),
@@ -64,7 +64,7 @@ export default function EditableSnippetViewer({
     } finally {
       setSaving(false)
     }
-  }, [id, html, toast])
+  }, [shortId, html, toast])
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col bg-surface">

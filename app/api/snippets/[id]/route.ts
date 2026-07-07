@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { getSnippetByShortId, updateSnippet, deleteSnippet } from "@/lib/snippet"
+import { getSnippetByShortId, updateSnippetByShortId, deleteSnippet } from "@/lib/snippet"
 
 export const dynamic = 'force-dynamic'
 
@@ -26,11 +26,11 @@ export async function PATCH(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    const { html } = await req.json()
+    const { html, permission } = await req.json()
     if (!html) {
       return NextResponse.json({ error: "HTML content required" }, { status: 400 })
     }
-    const updated = await updateSnippet(params.id, html, session?.user?.id)
+    const updated = await updateSnippetByShortId(params.id, html, session?.user?.id, permission)
     if (!updated) {
       return NextResponse.json({ error: "Not found or not authorized" }, { status: 404 })
     }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useSession } from "next-auth/react"
 
 interface ShareDialogProps {
@@ -8,9 +8,12 @@ interface ShareDialogProps {
   open: boolean
   onClose: () => void
   projectFileId?: string | null
+  snippetId?: string | null
+  snippetShortId?: string | null
+  onSnippetCreated?: (id: string, shortId: string) => void
 }
 
-export default function ShareDialog({ html, open, onClose, projectFileId }: ShareDialogProps) {
+export default function ShareDialog({ html, open, onClose, projectFileId, snippetId, snippetShortId, onSnippetCreated }: ShareDialogProps) {
   const { data: session } = useSession()
   const [shareUrl, setShareUrl] = useState("")
   const [loading, setLoading] = useState(false)
@@ -20,25 +23,45 @@ export default function ShareDialog({ html, open, onClose, projectFileId }: Shar
   const [emailLoading, setEmailLoading] = useState(false)
   const [error, setError] = useState("")
   const [permission, setPermission] = useState<"view" | "edit">("view")
+  const [lastSharedHtml, setLastSharedHtml] = useState("")
+
+  useEffect(() => {
+    if (open && snippetShortId) {
+      setShareUrl(`${window.location.origin}/snippets/${snippetShortId}`)
+    }
+  }, [open, snippetShortId])
 
   const handleShare = useCallback(async () => {
     setLoading(true)
     setError("")
     try {
-      const res = await fetch("/api/snippets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ html, permission, projectFileId }),
-      })
-      if (!res.ok) throw new Error("Failed to create snippet")
-      const data = await res.json()
-      setShareUrl(`${window.location.origin}/snippets/${data.shortId}`)
+      if (snippetId) {
+        const res = await fetch(`/api/snippets/${snippetShortId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ html, permission }),
+        })
+        if (!res.ok) throw new Error("Failed to update snippet")
+        setShareUrl(`${window.location.origin}/snippets/${snippetShortId}`)
+        setLastSharedHtml(html)
+      } else {
+        const res = await fetch("/api/snippets", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ html, permission, projectFileId }),
+        })
+        if (!res.ok) throw new Error("Failed to create snippet")
+        const data = await res.json()
+        setShareUrl(`${window.location.origin}/snippets/${data.shortId}`)
+        setLastSharedHtml(html)
+        onSnippetCreated?.(data.id, data.shortId)
+      }
     } catch {
       setError("Failed to create share link")
     } finally {
       setLoading(false)
     }
-  }, [html, permission, projectFileId])
+  }, [html, permission, projectFileId, snippetId, snippetShortId, onSnippetCreated])
 
   const handleCopy = useCallback(async () => {
     await navigator.clipboard.writeText(shareUrl)
@@ -72,6 +95,7 @@ export default function ShareDialog({ html, open, onClose, projectFileId }: Shar
     setEmailSent(false)
     setError("")
     setPermission("view")
+    setLastSharedHtml("")
     onClose()
   }, [onClose])
 
@@ -152,6 +176,24 @@ export default function ShareDialog({ html, open, onClose, projectFileId }: Shar
                   )}
                 </button>
               </div>
+            </div>
+
+            {html !== lastSharedHtml && (
+              <div className="mb-3 rounded-lg bg-amber-900/20 border border-amber-800/30 px-3 py-2">
+                <p className="text-xs text-amber-300">
+                  You have unsaved changes. Click &quot;Update Link&quot; to push changes to the shared link.
+                </p>
+              </div>
+            )}
+
+            <div className="mb-4 flex gap-2">
+              <button
+                onClick={handleShare}
+                disabled={loading || html === lastSharedHtml}
+                className="btn-primary flex-1"
+              >
+                {loading ? "Updating..." : html === lastSharedHtml ? "Link is up to date" : "Update Link"}
+              </button>
             </div>
 
             <div className="mb-4 rounded-lg bg-gray-800/30 px-3 py-2">

@@ -52,6 +52,7 @@ function EditorContent() {
   const [previewEditable, setPreviewEditable] = useState(false)
   const [autoSave, setAutoSave] = useState(true)
   const [snippetId, setSnippetId] = useState<string | null>(null)
+  const [snippetShortId, setSnippetShortId] = useState<string | null>(null)
   const [snippetTitle, setSnippetTitle] = useState("")
   const editorRef = useRef<HTMLDivElement>(null)
   const { getDraft, clearDraft } = useAutosave(html)
@@ -77,6 +78,7 @@ function EditorContent() {
           if (data.html) {
             setHtml(data.html)
             setSnippetId(data.id)
+            setSnippetShortId(data.shortId)
             setSnippetTitle(data.title || "")
             setProjectName(data.title || "")
           }
@@ -445,7 +447,18 @@ function EditorContent() {
         </div>
       </div>
 
-      <ShareDialog html={html} open={showShare} onClose={() => setShowShare(false)} projectFileId={projectFileId} />
+      <ShareDialog
+        html={html}
+        open={showShare}
+        onClose={() => setShowShare(false)}
+        projectFileId={projectFileId}
+        snippetId={snippetId}
+        snippetShortId={snippetShortId}
+        onSnippetCreated={(id, shortId) => {
+          setSnippetId(id)
+          setSnippetShortId(shortId)
+        }}
+      />
       <SaveDialog
         html={html}
         open={showSave}
