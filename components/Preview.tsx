@@ -95,9 +95,9 @@ export default function Preview({
   }, [editable, handleMessage])
 
   return (
-    <div className={`relative flex flex-col ${fullscreen ? "fixed inset-0 z-50 bg-surface" : "flex-1"}`}>
+    <div className={`relative flex flex-col ${fullscreen ? "fixed inset-0 z-50 bg-gray-50 dark:bg-surface" : "flex-1"}`}>
       {fullscreen && (
-        <div className="flex items-center justify-between border-b border-gray-800/60 bg-surface-light/80 backdrop-blur-sm px-3 py-1.5">
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800/60 bg-white/80 dark:bg-surface-light/80 backdrop-blur-sm px-3 py-1.5">
           <span className="text-sm font-medium tracking-wide text-gray-500 uppercase">Preview</span>
           <div className="flex items-center gap-2">
             {onDownloadImage && (

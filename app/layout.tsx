@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Inter, JetBrains_Mono } from "next/font/google"
 import Provider from "@/components/Provider"
+import { ThemeProvider } from "@/components/ThemeProvider"
 import Navbar from "@/components/Navbar"
 import ToastContainer from "@/components/Toast"
 import "./globals.css"
@@ -22,13 +23,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
-      <body className="font-sans antialiased">
-        <Provider>
-          <Navbar />
-          <main className="pt-14">{children}</main>
-          <ToastContainer />
-        </Provider>
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
+      <body className="font-sans antialiased bg-gray-50 dark:bg-surface text-gray-900 dark:text-gray-100">
+        <ThemeProvider>
+          <Provider>
+            <Navbar />
+            <main className="pt-14">{children}</main>
+            <ToastContainer />
+          </Provider>
+        </ThemeProvider>
       </body>
     </html>
   )

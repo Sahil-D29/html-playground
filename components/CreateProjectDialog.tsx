@@ -56,7 +56,7 @@ export default function CreateProjectDialog({
       <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
         <div className="mb-5 flex items-center justify-between">
           <h2 className="section-title">New Project</h2>
-          <button onClick={onClose} className="btn-icon text-gray-400 hover:text-white">
+          <button onClick={onClose} className="btn-icon text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -77,7 +77,7 @@ export default function CreateProjectDialog({
             />
           </div>
 
-          {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
+          {error && <p className="mb-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
           <div className="flex justify-end gap-2">
             <button type="button" onClick={onClose} className="btn-secondary">

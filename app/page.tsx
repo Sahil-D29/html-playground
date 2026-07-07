@@ -271,8 +271,8 @@ function EditorContent() {
   return (
     <>
       <div className="flex h-[calc(100vh-3.5rem)]">
-        <div className="flex w-1/2 min-w-0 flex-col border-r border-gray-800/60">
-          <div className="flex items-center justify-between border-b border-gray-800/60 bg-surface-light/50 px-3 py-1">
+        <div className="flex w-1/2 min-w-0 flex-col border-r border-gray-200 dark:border-gray-800/60">
+          <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800/60 bg-gray-50 dark:bg-surface-light/50 px-3 py-1">
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setActiveTab("html")}
@@ -295,19 +295,19 @@ function EditorContent() {
                 {projectName && (
                 <>
                   <div className="toolbar-separator" />
-                  <span className="truncate max-w-28 text-sm text-emerald-400 font-medium">{projectName}</span>
+                  <span className="truncate max-w-28 text-sm text-emerald-600 dark:text-emerald-400 font-medium">{projectName}</span>
                 </>
               )}
               {fileName && (
                 <>
                   <div className="toolbar-separator" />
-                  <span className="truncate max-w-28 text-xs text-gray-400">{fileName}</span>
+                  <span className="truncate max-w-28 text-xs text-gray-500 dark:text-gray-400">{fileName}</span>
                 </>
               )}
               {snippetTitle && !projectName && (
                 <>
                   <div className="toolbar-separator" />
-                  <span className="truncate max-w-28 text-xs text-emerald-400 font-medium">{snippetTitle}</span>
+                  <span className="truncate max-w-28 text-xs text-emerald-600 dark:text-emerald-400 font-medium">{snippetTitle}</span>
                 </>
               )}
               <div className="toolbar-separator" />
@@ -325,7 +325,7 @@ function EditorContent() {
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setAutoSave((a) => !a)}
-                className={`btn-icon text-sm relative ${autoSave ? "text-emerald-400" : "text-gray-500"}`}
+                className={`btn-icon text-sm relative ${autoSave ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500"}`}
                 title={autoSave ? "Auto-save on" : "Auto-save off"}
               >
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -337,14 +337,14 @@ function EditorContent() {
               </button>
               <button
                 onClick={() => setWordWrap((w) => !w)}
-                className={`btn-icon text-sm ${wordWrap ? "text-emerald-400" : "text-gray-500"}`}
+                className={`btn-icon text-sm ${wordWrap ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500"}`}
                 title="Toggle word wrap"
               >
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h10.5m0 0l-3-3m3 3l-3 3m-7.5 3h12" />
                 </svg>
               </button>
-              <button onClick={handleReset} className="btn-icon text-gray-500 hover:text-gray-300" title="Reset">
+              <button onClick={handleReset} className="btn-icon text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" title="Reset">
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
                 </svg>
@@ -374,17 +374,17 @@ function EditorContent() {
             {activeTab === "css" && <Editor value={cssCode} onChange={setCssCode} lang="css" />}
             {activeTab === "js" && <Editor value={jsCode} onChange={setJsCode} lang="js" />}
           </div>
-          <div className="flex items-center justify-between border-t border-gray-800/60 bg-surface-light/30 px-3 py-1">
-            <span className="text-xs text-gray-600">
+          <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-800/60 bg-gray-50 dark:bg-surface-light/30 px-3 py-1">
+            <span className="text-xs text-gray-500 dark:text-gray-600">
               <span className="kbd mr-1">Ctrl+S</span> Save
               <span className="kbd mx-1">Ctrl+Shift+S</span> Share
               <span className="kbd mx-1">Ctrl+Z</span> Undo
               <span className="kbd mx-1">Ctrl+Y</span> Redo
             </span>
-            <span className="flex items-center gap-2 text-xs text-gray-600">
+            <span className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-600">
               {projectFileId && autoSave && (
-                <span className={`flex items-center gap-1 ${autoSaving ? "text-yellow-400" : lastSaved ? "text-emerald-400" : "text-gray-600"}`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${autoSaving ? "bg-yellow-400" : lastSaved ? "bg-emerald-400" : "bg-gray-600"}`} />
+                <span className={`flex items-center gap-1 ${autoSaving ? "text-yellow-600 dark:text-yellow-400" : lastSaved ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500 dark:text-gray-600"}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${autoSaving ? "bg-yellow-500 dark:bg-yellow-400" : lastSaved ? "bg-emerald-500 dark:bg-emerald-400" : "bg-gray-400 dark:bg-gray-600"}`} />
                   {autoSaving ? "Saving..." : lastSaved ? "Saved" : "Auto"}
                 </span>
               )}
@@ -394,12 +394,12 @@ function EditorContent() {
         </div>
 
         <div className="flex w-1/2 min-w-0 flex-col">
-          <div className="flex items-center justify-between border-b border-gray-800/60 bg-surface-light/50 px-3 py-1">
+          <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800/60 bg-gray-50 dark:bg-surface-light/50 px-3 py-1">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium tracking-wide text-gray-500 uppercase">Preview</span>
               <button
                 onClick={() => setPreviewEditable((e) => !e)}
-                className={`btn-icon text-xs ${previewEditable ? "text-emerald-400 ring-1 ring-emerald-500/40" : "text-gray-500"}`}
+                className={`btn-icon text-xs ${previewEditable ? "text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/40" : "text-gray-500"}`}
                 title="Edit text in preview"
               >
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -421,14 +421,14 @@ function EditorContent() {
             </div>
           </div>
           {previewEditable && (
-            <div className="flex items-center gap-2 bg-emerald-900/20 border-b border-emerald-800/30 px-3 py-1">
-              <svg className="h-3 w-3 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-200 dark:border-emerald-800/30 px-3 py-1">
+              <svg className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
               </svg>
-              <span className="text-xs text-emerald-300">Editing in preview — changes sync to the editor</span>
+              <span className="text-xs text-emerald-700 dark:text-emerald-300">Editing in preview — changes sync to the editor</span>
               <button
                 onClick={() => setPreviewEditable(false)}
-                className="ml-auto btn-ghost text-xs text-emerald-300 hover:text-emerald-200"
+                className="ml-auto btn-ghost text-xs text-emerald-700 dark:text-emerald-300 hover:text-emerald-600 dark:hover:text-emerald-200"
               >
                 Done
               </button>
@@ -480,8 +480,8 @@ export default function Home() {
   return (
     <Suspense
       fallback={
-        <div className="flex h-[calc(100vh-3.5rem)] items-center justify-center bg-surface">
-          <svg className="h-5 w-5 animate-spin text-gray-500" viewBox="0 0 24 24" fill="none">
+        <div className="flex h-[calc(100vh-3.5rem)] items-center justify-center bg-gray-50 dark:bg-surface">
+          <svg className="h-5 w-5 animate-spin text-gray-400 dark:text-gray-500" viewBox="0 0 24 24" fill="none">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>

@@ -141,7 +141,7 @@ export default function SaveDialog({
             <h2 className="section-title">
               {isEditingFile ? "Update File" : "Save"}
             </h2>
-            <button onClick={handleClose} className="btn-icon text-gray-400 hover:text-white">
+            <button onClick={handleClose} className="btn-icon text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -150,12 +150,12 @@ export default function SaveDialog({
 
           {saved ? (
             <div className="py-6 text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
-                <svg className="h-6 w-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-500/10">
+                <svg className="h-6 w-6 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
               </div>
-              <p className="text-sm text-gray-300">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 {isEditingFile ? "File updated!" : "Saved successfully!"}
               </p>
               <button onClick={handleClose} className="btn-primary mt-4">
@@ -165,13 +165,13 @@ export default function SaveDialog({
           ) : (
             <>
               {authenticated && !isEditingFile && (
-                <div className="mb-5 flex gap-1 rounded-lg bg-gray-800/50 p-1">
+                <div className="mb-5 flex gap-1 rounded-lg bg-gray-100 dark:bg-gray-800/50 p-1">
                   <button
                     onClick={() => setMode("snippet")}
                     className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
                       mode === "snippet"
-                        ? "bg-gray-700 text-white shadow-sm"
-                        : "text-gray-400 hover:text-white"
+                        ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                     }`}
                   >
                     Quick Save
@@ -180,8 +180,8 @@ export default function SaveDialog({
                     onClick={() => setMode("project")}
                     className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
                       mode === "project"
-                        ? "bg-gray-700 text-white shadow-sm"
-                        : "text-gray-400 hover:text-white"
+                        ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                     }`}
                   >
                     Save to Project
@@ -192,7 +192,7 @@ export default function SaveDialog({
               {isEditingFile ? (
                 <div>
                   <p className="text-xs text-gray-500 mb-4">
-                    Updating <span className="text-gray-300 font-medium">{initialFileName || fileName || "file"}</span> in <span className="text-gray-300 font-medium">{initialProjectName || "project"}</span>.
+                    Updating <span className="text-gray-600 dark:text-gray-300 font-medium">{initialFileName || fileName || "file"}</span> in <span className="text-gray-600 dark:text-gray-300 font-medium">{initialProjectName || "project"}</span>.
                   </p>
                   <div className="mb-4">
                     <label className="label">File Name</label>
@@ -280,7 +280,7 @@ export default function SaveDialog({
                 </p>
               )}
 
-              {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
+              {error && <p className="mb-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
               <div className="mt-5 flex justify-end gap-2">
                 <button onClick={handleClose} className="btn-secondary">

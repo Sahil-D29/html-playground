@@ -45,14 +45,14 @@ export default function ToastContainer() {
           <div
             key={t.id}
             onClick={() => removeToast(t.id)}
-            className={`pointer-events-auto cursor-pointer flex items-center gap-2.5 rounded-xl border px-4 py-2.5 shadow-lg shadow-black/20 backdrop-blur-xl ${
+            className={`pointer-events-auto cursor-pointer flex items-center gap-2.5 rounded-xl border px-4 py-2.5 shadow-lg shadow-gray-200/50 dark:shadow-black/20 backdrop-blur-xl ${
               t.exiting ? "animate-toast-out" : "animate-toast-in"
             } ${
               t.type === "success"
-                ? "border-emerald-500/30 bg-emerald-900/40 text-emerald-300"
+                ? "border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"
                 : t.type === "error"
-                ? "border-red-500/30 bg-red-900/40 text-red-300"
-                : "border-emerald-500/30 bg-emerald-900/40 text-emerald-300"
+                ? "border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-900/40 text-red-700 dark:text-red-300"
+                : "border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"
             }`}
           >
             {t.type === "success" ? (

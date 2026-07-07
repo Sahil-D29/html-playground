@@ -46,7 +46,7 @@ export default function VersionDropdown({
       <button
         onClick={onUndo}
         disabled={!canUndo}
-        className={`btn-icon text-sm ${canUndo ? "text-gray-300 hover:text-white" : "text-gray-600"}`}
+        className={`btn-icon text-sm ${canUndo ? "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" : "text-gray-600"}`}
         title="Undo (Ctrl+Z)"
       >
         <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -56,7 +56,7 @@ export default function VersionDropdown({
 
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-colors min-w-[80px]"
+        className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-colors min-w-[80px]"
       >
         <span className="truncate">{label}</span>
         <svg className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -67,7 +67,7 @@ export default function VersionDropdown({
       <button
         onClick={onRedo}
         disabled={!canRedo}
-        className={`btn-icon text-sm ${canRedo ? "text-gray-300 hover:text-white" : "text-gray-600"}`}
+        className={`btn-icon text-sm ${canRedo ? "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" : "text-gray-600"}`}
         title="Redo (Ctrl+Y)"
       >
         <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -76,8 +76,8 @@ export default function VersionDropdown({
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1 z-50 w-72 max-h-64 overflow-y-auto rounded-xl border border-gray-700/50 bg-surface-light shadow-2xl shadow-black/40 backdrop-blur-xl animate-scale-in">
-          <div className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-gray-500 border-b border-gray-800/40">
+        <div className="absolute top-full left-0 mt-1 z-50 w-72 max-h-64 overflow-y-auto rounded-xl border border-gray-300 dark:border-gray-700/50 bg-white dark:bg-surface-light shadow-2xl shadow-gray-300/50 dark:shadow-black/40 backdrop-blur-xl animate-scale-in">
+          <div className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-gray-500 border-b border-gray-200 dark:border-gray-800/40">
             Version History
             <span className="ml-1.5 text-gray-600">({entries.length})</span>
           </div>
@@ -91,8 +91,8 @@ export default function VersionDropdown({
                 }}
                 className={`w-full text-left px-3 py-2 text-xs transition-colors ${
                   i === currentIndex
-                    ? "bg-emerald-500/10 text-emerald-300"
-                    : "text-gray-400 hover:text-white hover:bg-white/5"
+                    ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
@@ -100,7 +100,7 @@ export default function VersionDropdown({
                     {i === 0 ? "Original" : `Edit ${i}`}
                   </span>
                   {i === 0 && (
-                    <span className="rounded bg-gray-800 px-1.5 py-0.5 text-[10px] text-gray-500 font-mono">
+                    <span className="rounded bg-gray-200 dark:bg-gray-800 px-1.5 py-0.5 text-[10px] text-gray-500 font-mono">
                       org
                     </span>
                   )}

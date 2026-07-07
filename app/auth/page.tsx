@@ -47,15 +47,15 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center bg-surface p-4">
+    <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center bg-gray-50 dark:bg-surface p-4">
       <div className="card-glass w-full max-w-sm p-8 animate-scale-in">
         <div className="mb-6 text-center">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/20">
-            <svg className="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <svg className="h-6 w-6 text-gray-900 dark:text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
             </svg>
           </div>
-          <h1 className="text-xl font-semibold text-white">
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
             {isRegister ? "Create Account" : "Welcome Back"}
           </h1>
           <p className="mt-1.5 text-sm text-gray-500">
@@ -104,8 +104,8 @@ export default function AuthPage() {
           </div>
 
           {error && (
-            <div className="rounded-lg bg-red-900/20 border border-red-800/30 px-3 py-2">
-              <p className="text-xs text-red-400">{error}</p>
+            <div className="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 px-3 py-2">
+              <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
             </div>
           )}
 
@@ -130,7 +130,7 @@ export default function AuthPage() {
             <button
               type="button"
               onClick={() => setIsRegister(!isRegister)}
-              className="text-emerald-400 hover:text-emerald-300 transition-colors font-medium"
+              className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 transition-colors font-medium"
             >
               {isRegister ? "Sign In" : "Register"}
             </button>

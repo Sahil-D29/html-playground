@@ -67,20 +67,20 @@ export default function EditableSnippetViewer({
   }, [shortId, html, toast])
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] flex-col bg-surface">
-      <div className="flex items-center justify-between border-b border-gray-800/60 bg-surface-light/80 backdrop-blur-sm px-3 py-1.5">
-        <div className="flex items-center gap-2 text-xs text-gray-400">
-          <svg className="h-4 w-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <div className="flex h-[calc(100vh-3.5rem)] flex-col bg-gray-50 dark:bg-surface">
+      <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800/60 bg-white/80 dark:bg-surface-light/80 backdrop-blur-sm px-3 py-1.5">
+        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+          <svg className="h-4 w-4 text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
           </svg>
           <span>Shared snippet</span>
           {title && (
             <>
-              <span className="text-gray-600">&middot;</span>
-              <span className="text-gray-200 font-medium">{title}</span>
+              <span className="text-gray-400 dark:text-gray-600">&middot;</span>
+              <span className="text-gray-700 dark:text-gray-200 font-medium">{title}</span>
             </>
           )}
-          <span className="rounded bg-emerald-900/30 px-1.5 py-0.5 text-[10px] font-medium text-emerald-400 border border-emerald-800/30">
+          <span className="rounded bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/30">
             Can edit
           </span>
         </div>
@@ -112,8 +112,8 @@ export default function EditableSnippetViewer({
         </div>
       </div>
       <div className="flex flex-1 min-h-0">
-        <div className="flex w-1/2 min-w-0 flex-col border-r border-gray-800/60">
-          <div className="flex items-center gap-1 border-b border-gray-800/60 bg-surface-light/50 px-3 py-1">
+        <div className="flex w-1/2 min-w-0 flex-col border-r border-gray-200 dark:border-gray-800/60">
+          <div className="flex items-center gap-1 border-b border-gray-200 dark:border-gray-800/60 bg-white/50 dark:bg-surface-light/50 px-3 py-1">
             <span className="text-xs font-medium text-gray-500 uppercase">HTML</span>
             <div className="ml-auto">
               <VersionDropdown
@@ -133,12 +133,12 @@ export default function EditableSnippetViewer({
           </div>
         </div>
         <div className="flex w-1/2 min-w-0 flex-col">
-          <div className="flex items-center justify-between border-b border-gray-800/60 bg-surface-light/50 px-3 py-1">
+          <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800/60 bg-white/50 dark:bg-surface-light/50 px-3 py-1">
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-gray-500 uppercase">Preview</span>
               <button
                 onClick={() => setPreviewEditable((e) => !e)}
-                className={`btn-icon text-xs ${previewEditable ? "text-emerald-400 ring-1 ring-emerald-500/40" : "text-gray-500"}`}
+                className={`btn-icon text-xs ${previewEditable ? "text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/40" : "text-gray-500"}`}
                 title="Edit text in preview"
               >
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -148,14 +148,14 @@ export default function EditableSnippetViewer({
             </div>
           </div>
           {previewEditable && (
-            <div className="flex items-center gap-2 bg-emerald-900/20 border-b border-emerald-800/30 px-3 py-1">
-              <svg className="h-3 w-3 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-200 dark:border-emerald-800/30 px-3 py-1">
+              <svg className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
               </svg>
-              <span className="text-xs text-emerald-300">Editing in preview — changes sync to the editor</span>
+              <span className="text-xs text-emerald-700 dark:text-emerald-300">Editing in preview — changes sync to the editor</span>
               <button
                 onClick={() => setPreviewEditable(false)}
-                className="ml-auto btn-ghost text-xs text-emerald-300 hover:text-emerald-200"
+                className="ml-auto btn-ghost text-xs text-emerald-700 dark:text-emerald-300 hover:text-emerald-600 dark:hover:text-emerald-200"
               >
                 Done
               </button>
