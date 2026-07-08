@@ -22,13 +22,24 @@ interface Project {
   createdAt: string
 }
 
+interface RecentEdit {
+  id: string
+  html: string
+  author: string | null
+  createdAt: string
+  snippetId: string
+  snippetTitle: string
+  snippetShortId: string
+}
+
 export default function Dashboard() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [snippets, setSnippets] = useState<Snippet[]>([])
   const [projects, setProjects] = useState<Project[]>([])
+  const [recentEdits, setRecentEdits] = useState<RecentEdit[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<"snippets" | "projects">("projects")
+  const [tab, setTab] = useState<"snippets" | "projects" | "edits">("projects")
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth")
@@ -37,10 +48,12 @@ export default function Dashboard() {
     Promise.all([
       fetch("/api/snippets").then((r) => r.json()),
       fetch("/api/projects").then((r) => r.json()),
+      fetch("/api/snippets/recent-edits").then((r) => r.json()),
     ])
-      .then(([snippetsData, projectsData]) => {
+      .then(([snippetsData, projectsData, editsData]) => {
         setSnippets(snippetsData)
         setProjects(projectsData)
+        setRecentEdits(editsData)
       })
       .finally(() => setLoading(false))
   }, [status, router])
@@ -66,6 +79,21 @@ export default function Dashboard() {
   const handleDeleteProject = async (id: string) => {
     const res = await fetch(`/api/projects/${id}`, { method: "DELETE" })
     if (res.ok) setProjects((prev) => prev.filter((p) => p.id !== id))
+  }
+
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMin = Math.floor(diffMs / 60000)
+    const diffHr = Math.floor(diffMs / 3600000)
+    const diffDay = Math.floor(diffMs / 86400000)
+
+    if (diffMin < 1) return "Just now"
+    if (diffMin < 60) return `${diffMin}m ago`
+    if (diffHr < 24) return `${diffHr}h ago`
+    if (diffDay < 7) return `${diffDay}d ago`
+    return date.toLocaleDateString()
   }
 
   return (
@@ -106,6 +134,19 @@ export default function Dashboard() {
           >
             Snippets
             <span className="ml-2 badge bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">{snippets.length}</span>
+          </button>
+          <button
+            onClick={() => setTab("edits")}
+            className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+              tab === "edits"
+                ? "bg-gray-100 dark:bg-surface-lighter text-gray-900 dark:text-white shadow-sm"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            }`}
+          >
+            Recent Edits
+            {recentEdits.length > 0 && (
+              <span className="ml-2 badge bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">{recentEdits.length}</span>
+            )}
           </button>
         </div>
 
@@ -148,24 +189,24 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                        <Link
+                          href={`/projects/${project.id}`}
+                          className="btn-ghost text-sm"
+                        >
+                          View
+                        </Link>
+                        {project.files.length > 0 && (
                           <Link
-                            href={`/projects/${project.id}`}
-                            className="btn-ghost text-sm"
+                            href={`/?project=${project.id}&projectName=${encodeURIComponent(project.name)}&file=${project.files[0].id}`}
+                            className="btn-ghost text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300"
                           >
-                            View
+                            Edit
                           </Link>
-                          {project.files.length > 0 && (
-                            <Link
-                              href={`/?project=${project.id}&projectName=${encodeURIComponent(project.name)}&file=${project.files[0].id}`}
-                              className="btn-ghost text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300"
-                            >
-                              Edit
-                            </Link>
-                          )}
-                          <button
-                            onClick={() => handleDeleteProject(project.id)}
-                            className="btn-ghost text-sm text-red-600 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300"
-                          >
+                        )}
+                        <button
+                          onClick={() => handleDeleteProject(project.id)}
+                          className="btn-ghost text-sm text-red-600 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300"
+                        >
                           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                           </svg>
@@ -253,6 +294,68 @@ export default function Dashboard() {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                           </svg>
                         </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {tab === "edits" && (
+          <>
+            {recentEdits.length === 0 ? (
+              <div className="card-glass p-12 text-center animate-slide-up">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100 dark:bg-blue-500/10">
+                  <svg className="h-7 w-7 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-base font-medium text-gray-900 dark:text-white mb-1">No edits yet</h3>
+                <p className="text-sm text-gray-500 mb-5">
+                  When others edit your shared snippets, their changes will appear here.
+                </p>
+                <Link href="/" className="btn-primary">
+                  Share a Snippet
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {recentEdits.map((edit) => (
+                  <div key={edit.id} className="card-glass-hover px-4 py-3 animate-slide-up">
+                    <div className="flex items-start justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/?snippet=${edit.snippetShortId}`}
+                            className="text-sm font-medium text-gray-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors truncate"
+                          >
+                            {edit.snippetTitle}
+                          </Link>
+                          <span className="badge text-[10px] bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/30 shrink-0">
+                            Edited
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            by <span className="font-medium text-gray-700 dark:text-gray-300">{edit.author || "Anonymous"}</span>
+                          </span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500">
+                            {formatTime(edit.createdAt)}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-gray-400 dark:text-gray-500 line-clamp-1 font-mono">
+                          {edit.html.replace(/<[^>]*>/g, "").substring(0, 100)}...
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0 ml-3">
+                        <Link
+                          href={`/?snippet=${edit.snippetShortId}`}
+                          className="btn-ghost text-sm text-emerald-600 dark:text-emerald-400"
+                        >
+                          Open
+                        </Link>
                       </div>
                     </div>
                   </div>
