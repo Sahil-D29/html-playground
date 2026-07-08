@@ -271,7 +271,7 @@ function EditorContent() {
   return (
     <>
       <div className="flex h-[calc(100vh-3.5rem)] flex-col md:flex-row">
-        <div className="flex min-w-0 flex-col border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-800/60 h-1/2 md:h-1/2">
+        <div className="flex min-w-0 flex-col border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-800/60 h-1/2 md:w-1/2 md:h-full">
           <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800/60 bg-gray-50 dark:bg-surface-light/50 px-3 py-1">
             <div className="flex items-center gap-1">
               <button
@@ -391,7 +391,7 @@ function EditorContent() {
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-col h-1/2 md:h-1/2">
+        <div className="flex min-w-0 flex-col h-1/2 md:w-1/2 md:h-full">
           <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800/60 bg-gray-50 dark:bg-surface-light/50 px-3 py-1">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium tracking-wide text-gray-500 uppercase">Preview</span>
