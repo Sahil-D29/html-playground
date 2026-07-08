@@ -185,54 +185,33 @@ function EditorContent() {
     container.style.left = "-9999px"
     container.style.width = `${VIEWPORT_WIDTH}px`
     container.style.background = "white"
+    container.style.overflow = "hidden"
     document.body.appendChild(container)
 
-    const iframe = document.createElement("iframe")
-    iframe.style.width = `${VIEWPORT_WIDTH}px`
-    iframe.style.border = "none"
-    iframe.style.display = "block"
-    container.appendChild(iframe)
+    const parsed = new DOMParser().parseFromString(combinedHtml, "text/html")
+    const headContent = parsed.head.innerHTML
+    const bodyContent = parsed.body.innerHTML
+    const bodyAttributes = Array.from(parsed.body.attributes)
+      .map((a) => `${a.name}="${a.value}"`)
+      .join(" ")
 
-    iframe.srcdoc = combinedHtml
+    container.innerHTML = `
+      <style>${headContent.match(/<style[\s\S]*?<\/style>/gi)?.map((s) => s.replace(/<\/?style[^>]*>/gi, "")).join("\n") || ""}</style>
+      <div ${bodyAttributes}>${bodyContent}</div>
+    `
 
-    await new Promise<void>((resolve) => {
-      iframe.onload = () => resolve()
-    })
-
-    const doc = iframe.contentDocument
-    if (!doc) {
-      document.body.removeChild(container)
-      return
+    const inner = container.firstElementChild as HTMLElement
+    if (inner) {
+      inner.style.margin = "0"
+      inner.style.padding = inner.style.padding || "0"
     }
 
-    await Promise.all([
-      Promise.all(
-        Array.from(doc.images).map(
-          (img) =>
-            new Promise<void>((resolve) => {
-              if (img.complete) resolve()
-              else {
-                img.onload = () => resolve()
-                img.onerror = () => resolve()
-              }
-            })
-        )
-      ),
-      doc.fonts?.ready ?? Promise.resolve(),
-    ])
+    await document.fonts?.ready
 
-    const iframeDoc = doc
     await new Promise<void>((resolve) => {
       let frames = 0
       function check() {
         frames++
-        const bodyHeight = iframeDoc.body?.scrollHeight ?? 0
-        const htmlHeight = iframeDoc.documentElement.scrollHeight
-        const maxHeight = Math.max(bodyHeight, htmlHeight)
-        if (maxHeight > 0) {
-          iframe.style.height = `${maxHeight}px`
-          container.style.height = `${maxHeight}px`
-        }
         if (frames >= 3) { resolve(); return }
         requestAnimationFrame(check)
       }
