@@ -115,7 +115,7 @@ export default function EditableSnippetViewer({
 
       <div className="flex flex-1 min-h-0 flex-col md:flex-row">
         {/* Code panel */}
-        <div className="flex min-w-0 flex-col border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-800/60 md:w-1/2 md:flex-1 h-1/2 md:h-auto">
+        <div className="flex min-w-0 flex-col border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-800/60 md:w-1/2 h-1/2 md:h-1/2">
           <div className="flex items-center gap-1 border-b border-gray-200 dark:border-gray-800/60 bg-white/50 dark:bg-surface-light/50 px-3 py-1">
             <span className="text-xs font-medium text-gray-500 uppercase">HTML</span>
             <div className="ml-auto">
@@ -136,7 +136,7 @@ export default function EditableSnippetViewer({
           </div>
         </div>
         {/* Preview panel */}
-        <div className="flex min-w-0 flex-col md:w-1/2 md:flex-1 h-1/2 md:h-auto">
+        <div className="flex min-w-0 flex-col md:w-1/2 h-1/2 md:h-1/2">
           <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800/60 bg-white/50 dark:bg-surface-light/50 px-3 py-1">
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-gray-500 uppercase">Preview</span>
