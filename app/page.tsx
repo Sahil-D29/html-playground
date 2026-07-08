@@ -77,6 +77,7 @@ function EditorContent() {
         .then((data) => {
           if (data.html) {
             setHtml(data.html)
+            clearDraft()
             setSnippetId(data.id)
             setSnippetShortId(data.shortId)
             setSnippetTitle(data.title || "")
@@ -486,8 +487,11 @@ function EditorContent() {
         projectName={projectName}
         initialFileName={fileName}
         onSaved={(data) => {
+          clearDraft()
           if (data.title) setSnippetTitle(data.title)
           if (data.title && !projectName) setProjectName(data.title)
+          if (data.shortId) setSnippetShortId(data.shortId)
+          if (data.id) setSnippetId(data.id)
         }}
       />
     </>

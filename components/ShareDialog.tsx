@@ -13,7 +13,15 @@ interface ShareDialogProps {
   onSnippetCreated?: (id: string, shortId: string) => void
 }
 
-export default function ShareDialog({ html, open, onClose, projectFileId, snippetId, snippetShortId, onSnippetCreated }: ShareDialogProps) {
+export default function ShareDialog({
+  html,
+  open,
+  onClose,
+  projectFileId,
+  snippetId,
+  snippetShortId,
+  onSnippetCreated,
+}: ShareDialogProps) {
   const { data: session } = useSession()
   const [shareUrl, setShareUrl] = useState("")
   const [loading, setLoading] = useState(false)
@@ -23,13 +31,24 @@ export default function ShareDialog({ html, open, onClose, projectFileId, snippe
   const [emailLoading, setEmailLoading] = useState(false)
   const [error, setError] = useState("")
   const [permission, setPermission] = useState<"view" | "edit">("view")
+  const [editMode, setEditMode] = useState<"code" | "text">("code")
+  const [syncMode, setSyncMode] = useState<"auto" | "manual">("auto")
+  const [collaboratorName, setCollaboratorName] = useState("")
   const [lastSharedHtml, setLastSharedHtml] = useState("")
+  const [editCount, setEditCount] = useState(0)
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null)
 
   useEffect(() => {
     if (open && snippetShortId) {
       setShareUrl(`${window.location.origin}/snippets/${snippetShortId}`)
     }
   }, [open, snippetShortId])
+
+  useEffect(() => {
+    if (open && html !== lastSharedHtml && lastSharedHtml !== "") {
+      setEditCount((c) => c + 1)
+    }
+  }, [html, open, lastSharedHtml])
 
   const handleShare = useCallback(async () => {
     setLoading(true)
@@ -39,21 +58,36 @@ export default function ShareDialog({ html, open, onClose, projectFileId, snippe
         const res = await fetch(`/api/snippets/${snippetShortId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ html, permission }),
+          body: JSON.stringify({
+            html,
+            permission,
+            editMode,
+            syncMode,
+          }),
         })
         if (!res.ok) throw new Error("Failed to update snippet")
         setShareUrl(`${window.location.origin}/snippets/${snippetShortId}`)
         setLastSharedHtml(html)
+        setEditCount(0)
+        setLastSyncTime(new Date().toLocaleTimeString())
       } else {
         const res = await fetch("/api/snippets", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ html, permission, projectFileId }),
+          body: JSON.stringify({
+            html,
+            permission,
+            editMode,
+            syncMode,
+            projectFileId,
+          }),
         })
         if (!res.ok) throw new Error("Failed to create snippet")
         const data = await res.json()
         setShareUrl(`${window.location.origin}/snippets/${data.shortId}`)
         setLastSharedHtml(html)
+        setEditCount(0)
+        setLastSyncTime(new Date().toLocaleTimeString())
         onSnippetCreated?.(data.id, data.shortId)
       }
     } catch {
@@ -61,7 +95,16 @@ export default function ShareDialog({ html, open, onClose, projectFileId, snippe
     } finally {
       setLoading(false)
     }
-  }, [html, permission, projectFileId, snippetId, snippetShortId, onSnippetCreated])
+  }, [
+    html,
+    permission,
+    editMode,
+    syncMode,
+    projectFileId,
+    snippetId,
+    snippetShortId,
+    onSnippetCreated,
+  ])
 
   const handleCopy = useCallback(async () => {
     await navigator.clipboard.writeText(shareUrl)
@@ -95,18 +138,28 @@ export default function ShareDialog({ html, open, onClose, projectFileId, snippe
     setEmailSent(false)
     setError("")
     setPermission("view")
+    setEditMode("code")
+    setSyncMode("auto")
+    setCollaboratorName("")
     setLastSharedHtml("")
+    setEditCount(0)
+    setLastSyncTime(null)
     onClose()
   }, [onClose])
 
   if (!open) return null
+
+  const hasChanges = html !== lastSharedHtml && lastSharedHtml !== ""
 
   return (
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
         <div className="mb-5 flex items-center justify-between">
           <h2 className="section-title">Share Snippet</h2>
-          <button onClick={handleClose} className="btn-icon text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+          <button
+            onClick={handleClose}
+            className="btn-icon text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+          >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -116,7 +169,7 @@ export default function ShareDialog({ html, open, onClose, projectFileId, snippe
         {!shareUrl ? (
           <div>
             <div className="mb-4">
-              <label className="label">Who can edit</label>
+              <label className="label">Who can access</label>
               <div className="flex gap-2 rounded-lg bg-gray-100 dark:bg-gray-800/50 p-1">
                 <button
                   onClick={() => setPermission("view")}
@@ -142,9 +195,90 @@ export default function ShareDialog({ html, open, onClose, projectFileId, snippe
               <p className="mt-1.5 text-xs text-gray-500">
                 {permission === "view"
                   ? "Viewers can only see the rendered output."
-                  : "Viewers can see and modify the source code, then save changes."}
+                  : "Viewers can see and modify the source code in real-time."}
               </p>
             </div>
+
+            {permission === "edit" && (
+              <>
+                <div className="mb-4">
+                  <label className="label">Edit mode</label>
+                  <div className="flex gap-2 rounded-lg bg-gray-100 dark:bg-gray-800/50 p-1">
+                    <button
+                      onClick={() => setEditMode("code")}
+                      className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+                        editMode === "code"
+                          ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                          : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                      }`}
+                    >
+                      Code
+                    </button>
+                    <button
+                      onClick={() => setEditMode("text")}
+                      className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+                        editMode === "text"
+                          ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                          : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                      }`}
+                    >
+                      Text
+                    </button>
+                  </div>
+                  <p className="mt-1.5 text-xs text-gray-500">
+                    {editMode === "code"
+                      ? "Full code editor with syntax highlighting."
+                      : "Simplified editing — click text in preview to change it."}
+                  </p>
+                </div>
+
+                <div className="mb-4">
+                  <label className="label">Sync to original</label>
+                  <div className="flex gap-2 rounded-lg bg-gray-100 dark:bg-gray-800/50 p-1">
+                    <button
+                      onClick={() => setSyncMode("auto")}
+                      className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+                        syncMode === "auto"
+                          ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                          : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                      }`}
+                    >
+                      Auto
+                    </button>
+                    <button
+                      onClick={() => setSyncMode("manual")}
+                      className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+                        syncMode === "manual"
+                          ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                          : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                      }`}
+                    >
+                      Manual
+                    </button>
+                  </div>
+                  <p className="mt-1.5 text-xs text-gray-500">
+                    {syncMode === "auto"
+                      ? "Changes auto-sync to the original file."
+                      : "Changes require your approval to push to the original."}
+                  </p>
+                </div>
+
+                <div className="mb-4">
+                  <label className="label">Your display name (optional)</label>
+                  <input
+                    type="text"
+                    value={collaboratorName}
+                    onChange={(e) => setCollaboratorName(e.target.value)}
+                    placeholder="Anonymous"
+                    className="input"
+                  />
+                  <p className="mt-1.5 text-xs text-gray-500">
+                    Shown to other editors as your cursor label.
+                  </p>
+                </div>
+              </>
+            )}
+
             <button
               onClick={handleShare}
               disabled={loading}
@@ -158,11 +292,7 @@ export default function ShareDialog({ html, open, onClose, projectFileId, snippe
             <div className="mb-4">
               <label className="label">Share Link</label>
               <div className="flex flex-col sm:flex-row gap-2">
-                <input
-                  readOnly
-                  value={shareUrl}
-                  className="input flex-1"
-                />
+                <input readOnly value={shareUrl} className="input flex-1" />
                 <button onClick={handleCopy} className="btn-secondary whitespace-nowrap">
                   {copied ? (
                     <span className="flex items-center gap-1">
@@ -178,10 +308,11 @@ export default function ShareDialog({ html, open, onClose, projectFileId, snippe
               </div>
             </div>
 
-            {html !== lastSharedHtml && (
+            {hasChanges && (
               <div className="mb-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 px-3 py-2">
                 <p className="text-xs text-amber-700 dark:text-amber-300">
-                  You have unsaved changes. Click &quot;Update Link&quot; to push changes to the shared link.
+                  {editCount} change{editCount !== 1 ? "s" : ""} since last sync.
+                  {lastSyncTime && ` Last synced ${lastSyncTime}.`}
                 </p>
               </div>
             )}
@@ -189,17 +320,40 @@ export default function ShareDialog({ html, open, onClose, projectFileId, snippe
             <div className="mb-4 flex gap-2">
               <button
                 onClick={handleShare}
-                disabled={loading || html === lastSharedHtml}
+                disabled={loading || !hasChanges}
                 className="btn-primary flex-1"
               >
-                {loading ? "Updating..." : html === lastSharedHtml ? "Link is up to date" : "Update Link"}
+                {loading
+                  ? "Syncing..."
+                  : hasChanges
+                  ? "Push Changes to Shared Link"
+                  : "Link is up to date"}
               </button>
             </div>
 
-            <div className="mb-4 rounded-lg bg-gray-100 dark:bg-gray-800/30 px-3 py-2">
+            <div className="mb-4 rounded-lg bg-gray-100 dark:bg-gray-800/30 px-3 py-2 space-y-1">
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Permission: <span className="font-medium text-gray-700 dark:text-gray-200">{permission === "view" ? "View only" : "Can edit"}</span>
+                Permission:{" "}
+                <span className="font-medium text-gray-700 dark:text-gray-200">
+                  {permission === "view" ? "View only" : "Can edit"}
+                </span>
               </p>
+              {permission === "edit" && (
+                <>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Edit mode:{" "}
+                    <span className="font-medium text-gray-700 dark:text-gray-200">
+                      {editMode === "code" ? "Code" : "Text"}
+                    </span>
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Sync:{" "}
+                    <span className="font-medium text-gray-700 dark:text-gray-200">
+                      {syncMode === "auto" ? "Auto-sync" : "Manual push"}
+                    </span>
+                  </p>
+                </>
+              )}
             </div>
 
             {session && (

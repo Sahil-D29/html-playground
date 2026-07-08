@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback } from "react"
 
 const AUTOSAVE_KEY = "html-playground-autosave"
+const SNIPPET_SESSION_KEY = "html-playground-active-snippet"
 
 export function useAutosave(html: string) {
   const savedRef = useRef(html)
@@ -26,6 +27,12 @@ export function useAutosave(html: string) {
   }, [html])
 
   const getDraft = useCallback(() => {
+    // Don't restore draft if user is viewing a snippet
+    const snippetParam = new URLSearchParams(window.location.search).get(
+      "snippet"
+    )
+    if (snippetParam) return null
+
     return localStorage.getItem(AUTOSAVE_KEY)
   }, [])
 

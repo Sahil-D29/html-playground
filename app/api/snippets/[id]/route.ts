@@ -1,22 +1,27 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { getSnippetByShortId, updateSnippetByShortId, deleteSnippet } from "@/lib/snippet"
+import { prisma } from "@/lib/prisma"
 
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic"
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const snippet = await getSnippetByShortId(params.id)
+    const snippet = await prisma.snippet.findUnique({
+      where: { shortId: params.id },
+    })
     if (!snippet) {
       return NextResponse.json({ error: "Not found" }, { status: 404 })
     }
     return NextResponse.json(snippet)
   } catch {
-    return NextResponse.json({ error: "Something went wrong" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Something went wrong" },
+      { status: 500 }
+    )
   }
 }
 
@@ -26,17 +31,52 @@ export async function PATCH(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    const { html, permission } = await req.json()
-    if (!html) {
-      return NextResponse.json({ error: "HTML content required" }, { status: 400 })
+    const { html, permission, editMode, syncMode } = await req.json()
+
+    const updateData: Record<string, any> = {}
+    if (html) updateData.html = html
+    if (permission) updateData.permission = permission
+    if (editMode) updateData.editMode = editMode
+    if (syncMode) updateData.syncMode = syncMode
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json(
+        { error: "No data to update" },
+        { status: 400 }
+      )
     }
-    const updated = await updateSnippetByShortId(params.id, html, session?.user?.id, permission)
-    if (!updated) {
-      return NextResponse.json({ error: "Not found or not authorized" }, { status: 404 })
+
+    const snippet = await prisma.snippet.findUnique({
+      where: { shortId: params.id },
+    })
+    if (!snippet) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 })
     }
+    if (snippet.userId && snippet.userId !== session?.user?.id) {
+      return NextResponse.json({ error: "Not authorized" }, { status: 403 })
+    }
+
+    const updated = await prisma.snippet.update({
+      where: { shortId: params.id },
+      data: updateData,
+    })
+
+    // Sync to project file if linked
+    if (snippet.projectFileId && html) {
+      await prisma.projectFile
+        .update({
+          where: { id: snippet.projectFileId },
+          data: { content: html },
+        })
+        .catch(() => {})
+    }
+
     return NextResponse.json(updated)
   } catch {
-    return NextResponse.json({ error: "Something went wrong" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Something went wrong" },
+      { status: 500 }
+    )
   }
 }
 
@@ -49,12 +89,23 @@ export async function DELETE(
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
-    const deleted = await deleteSnippet(params.id, session.user.id)
-    if (!deleted) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 })
+
+    const snippet = await prisma.snippet.findUnique({
+      where: { id: params.id },
+    })
+    if (!snippet || snippet.userId !== session.user.id) {
+      return NextResponse.json(
+        { error: "Not found or not authorized" },
+        { status: 404 }
+      )
     }
+
+    await prisma.snippet.delete({ where: { id: params.id } })
     return NextResponse.json({ success: true })
   } catch {
-    return NextResponse.json({ error: "Something went wrong" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Something went wrong" },
+      { status: 500 }
+    )
   }
 }

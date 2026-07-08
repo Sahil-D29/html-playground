@@ -10,6 +10,7 @@ interface Snippet {
   id: string
   shortId: string
   title: string
+  permission: string
   createdAt: string
 }
 
@@ -201,9 +202,22 @@ export default function Dashboard() {
                   <div key={snippet.id} className="card-glass-hover px-4 py-3 group animate-slide-up">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                          {snippet.title || "Untitled"}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            {snippet.title || "Untitled"}
+                          </p>
+                          <span
+                            className={`badge text-[10px] ${
+                              snippet.permission === "edit"
+                                ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/30"
+                                : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700/50"
+                            }`}
+                          >
+                            {snippet.permission === "edit"
+                              ? "Can edit"
+                              : "View only"}
+                          </span>
+                        </div>
                         <p className="text-xs text-gray-500 mt-0.5">
                           {new Date(snippet.createdAt).toLocaleDateString()}
                         </p>

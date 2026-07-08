@@ -20,7 +20,12 @@ interface SaveDialogProps {
   projectId?: string | null
   projectName?: string
   initialFileName?: string
-  onSaved?: (data: { title?: string; shortId?: string; id?: string }) => void
+  onSaved?: (data: {
+    title?: string
+    shortId?: string
+    id?: string
+    permission?: string
+  }) => void
 }
 
 export default function SaveDialog({
@@ -39,12 +44,19 @@ export default function SaveDialog({
     initialFileId ? "project" : "snippet"
   )
   const [projects, setProjects] = useState<Project[]>([])
-  const [selectedProject, setSelectedProject] = useState(initialProjectId || "")
+  const [selectedProject, setSelectedProject] = useState(
+    initialProjectId || ""
+  )
   const [fileName, setFileName] = useState(initialFileName || "index.html")
   const [snippetTitle, setSnippetTitle] = useState("")
+  const [permission, setPermission] = useState<"view" | "edit">("view")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [saved, setSaved] = useState(false)
+  const [savedData, setSavedData] = useState<{
+    shortId?: string
+    permission?: string
+  }>({})
   const [showCreateProject, setShowCreateProject] = useState(false)
 
   useEffect(() => {
@@ -71,11 +83,18 @@ export default function SaveDialog({
           body: JSON.stringify({
             html,
             title: snippetTitle.trim() || undefined,
+            permission,
           }),
         })
         if (!res.ok) throw new Error("Failed to save snippet")
         const data = await res.json()
-        onSaved?.({ title: data.title, shortId: data.shortId, id: data.id })
+        setSavedData({ shortId: data.shortId, permission })
+        onSaved?.({
+          title: data.title,
+          shortId: data.shortId,
+          id: data.id,
+          permission,
+        })
       } else {
         if (!selectedProject) throw new Error("Select a project")
         const isUpdate = !!initialFileId
@@ -85,21 +104,27 @@ export default function SaveDialog({
             {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ content: html, name: fileName.trim() || undefined }),
+              body: JSON.stringify({
+                content: html,
+                name: fileName.trim() || undefined,
+              }),
             }
           )
           if (!res.ok) throw new Error("Failed to update file")
           onSaved?.({ title: fileName.trim() || "index.html" })
         } else {
-          const res = await fetch(`/api/projects/${selectedProject}/files`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: fileName.trim() || "index.html",
-              type: "html",
-              content: html,
-            }),
-          })
+          const res = await fetch(
+            `/api/projects/${selectedProject}/files`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name: fileName.trim() || "index.html",
+                type: "html",
+                content: html,
+              }),
+            }
+          )
           if (!res.ok) throw new Error("Failed to save file")
           onSaved?.({ title: fileName.trim() || "index.html" })
         }
@@ -107,26 +132,50 @@ export default function SaveDialog({
       setSaved(true)
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save")
+      setError(
+        err instanceof Error ? err.message : "Failed to save"
+      )
     } finally {
       setLoading(false)
     }
-  }, [mode, html, snippetTitle, selectedProject, fileName, router, initialFileId, onSaved])
+  }, [
+    mode,
+    html,
+    snippetTitle,
+    permission,
+    selectedProject,
+    fileName,
+    router,
+    initialFileId,
+    onSaved,
+  ])
+
+  const handleCopyShareLink = useCallback(async () => {
+    if (savedData.shortId) {
+      const url = `${window.location.origin}/snippets/${savedData.shortId}`
+      await navigator.clipboard.writeText(url)
+    }
+  }, [savedData])
 
   const handleClose = useCallback(() => {
     setMode(initialFileId ? "project" : "snippet")
     setSelectedProject(initialProjectId || "")
     setFileName("index.html")
     setSnippetTitle("")
+    setPermission("view")
     setError("")
     setSaved(false)
+    setSavedData({})
     onClose()
   }, [onClose, initialFileId, initialProjectId])
 
-  const handleCreated = useCallback((project: { id: string; name: string }) => {
-    setSelectedProject(project.id)
-    setShowCreateProject(false)
-  }, [])
+  const handleCreated = useCallback(
+    (project: { id: string; name: string }) => {
+      setSelectedProject(project.id)
+      setShowCreateProject(false)
+    },
+    []
+  )
 
   if (!open) return null
 
@@ -136,14 +185,30 @@ export default function SaveDialog({
   return (
     <>
       <div className="modal-overlay" onClick={handleClose}>
-        <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="modal-panel"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="mb-5 flex items-center justify-between">
             <h2 className="section-title">
               {isEditingFile ? "Update File" : "Save"}
             </h2>
-            <button onClick={handleClose} className="btn-icon text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            <button
+              onClick={handleClose}
+              className="btn-icon text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            >
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -151,14 +216,57 @@ export default function SaveDialog({
           {saved ? (
             <div className="py-6 text-center">
               <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-500/10">
-                <svg className="h-6 w-6 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                <svg
+                  className="h-6 w-6 text-emerald-600 dark:text-emerald-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4.5 12.75l6 6 9-13.5"
+                  />
                 </svg>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-300">
                 {isEditingFile ? "File updated!" : "Saved successfully!"}
               </p>
-              <button onClick={handleClose} className="btn-primary mt-4">
+
+              {!isEditingFile && mode === "snippet" && savedData.shortId && (
+                <div className="mt-4 space-y-2">
+                  <button
+                    onClick={handleCopyShareLink}
+                    className="btn-primary w-full text-sm"
+                  >
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"
+                      />
+                    </svg>
+                    Copy Share Link
+                  </button>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500">
+                    {savedData.permission === "edit"
+                      ? "Anyone with this link can edit"
+                      : "Anyone with this link can view"}
+                  </p>
+                </div>
+              )}
+
+              <button
+                onClick={handleClose}
+                className="btn-secondary mt-4 w-full"
+              >
                 Done
               </button>
             </div>
@@ -192,7 +300,15 @@ export default function SaveDialog({
               {isEditingFile ? (
                 <div>
                   <p className="text-xs text-gray-500 mb-4">
-                    Updating <span className="text-gray-600 dark:text-gray-300 font-medium">{initialFileName || fileName || "file"}</span> in <span className="text-gray-600 dark:text-gray-300 font-medium">{initialProjectName || "project"}</span>.
+                    Updating{" "}
+                    <span className="text-gray-600 dark:text-gray-300 font-medium">
+                      {initialFileName || fileName || "file"}
+                    </span>{" "}
+                    in{" "}
+                    <span className="text-gray-600 dark:text-gray-300 font-medium">
+                      {initialProjectName || "project"}
+                    </span>
+                    .
                   </p>
                   <div className="mb-4">
                     <label className="label">File Name</label>
@@ -217,6 +333,38 @@ export default function SaveDialog({
                       className="input"
                     />
                   </div>
+
+                  <div className="mb-4">
+                    <label className="label">Who can access</label>
+                    <div className="flex gap-2 rounded-lg bg-gray-100 dark:bg-gray-800/50 p-1">
+                      <button
+                        onClick={() => setPermission("view")}
+                        className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+                          permission === "view"
+                            ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                            : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                        }`}
+                      >
+                        View only
+                      </button>
+                      <button
+                        onClick={() => setPermission("edit")}
+                        className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+                          permission === "edit"
+                            ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                            : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                        }`}
+                      >
+                        Can edit
+                      </button>
+                    </div>
+                    <p className="mt-1.5 text-xs text-gray-500">
+                      {permission === "view"
+                        ? "Viewers can only see the rendered output."
+                        : "Viewers can modify the source code in real-time."}
+                    </p>
+                  </div>
+
                   <p className="text-xs text-gray-500">
                     Creates a shareable snippet
                     {authenticated ? " linked to your account" : ""}.
@@ -233,7 +381,9 @@ export default function SaveDialog({
                         <div className="flex flex-col sm:flex-row gap-2">
                           <select
                             value={selectedProject}
-                            onChange={(e) => setSelectedProject(e.target.value)}
+                            onChange={(e) =>
+                              setSelectedProject(e.target.value)
+                            }
                             className="input flex-1"
                           >
                             {projects.map((p) => (
@@ -280,7 +430,11 @@ export default function SaveDialog({
                 </p>
               )}
 
-              {error && <p className="mb-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
+              {error && (
+                <p className="mb-4 text-sm text-red-600 dark:text-red-400">
+                  {error}
+                </p>
+              )}
 
               <div className="mt-5 flex justify-end gap-2">
                 <button onClick={handleClose} className="btn-secondary">
@@ -290,7 +444,9 @@ export default function SaveDialog({
                   onClick={handleSave}
                   disabled={
                     loading ||
-                    (mode === "project" && !selectedProject && !isEditingFile) ||
+                    (mode === "project" &&
+                      !selectedProject &&
+                      !isEditingFile) ||
                     (mode === "project" && !authenticated)
                   }
                   className="btn-primary"
