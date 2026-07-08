@@ -9,6 +9,7 @@ import PresenceBar from "./PresenceBar"
 import ChangeHistory from "./ChangeHistory"
 import Preview from "./Preview"
 import SaveSnippetButton from "./SaveSnippetButton"
+import NamePrompt from "./NamePrompt"
 
 export default function CollaborativeSnippetViewer({
   id,
@@ -31,17 +32,19 @@ export default function CollaborativeSnippetViewer({
   const [showHistory, setShowHistory] = useState(false)
   const [saving, setSaving] = useState(false)
   const [username, setUsername] = useState("")
+  const [nameReady, setNameReady] = useState(false)
 
-  // Load username from localStorage or use anonymous
+  // Load username from localStorage
   useEffect(() => {
     const stored = localStorage.getItem("collab-username")
     if (stored) {
       setUsername(stored)
-    } else {
-      const name = `User ${Math.floor(Math.random() * 1000)}`
-      setUsername(name)
-      localStorage.setItem("collab-username", name)
     }
+    setNameReady(true)
+  }, [])
+
+  const handleNameConfirm = useCallback((name: string) => {
+    setUsername(name)
   }, [])
 
   // Collaboration setup
@@ -124,6 +127,10 @@ export default function CollaborativeSnippetViewer({
     setUsername(newName)
     localStorage.setItem("collab-username", newName)
   }, [])
+
+  if (nameReady && !username) {
+    return <NamePrompt onConfirm={handleNameConfirm} />
+  }
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col bg-gray-50 dark:bg-surface">

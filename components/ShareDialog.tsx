@@ -11,6 +11,7 @@ interface ShareDialogProps {
   snippetId?: string | null
   snippetShortId?: string | null
   onSnippetCreated?: (id: string, shortId: string) => void
+  onSaveRequired?: () => void
 }
 
 export default function ShareDialog({
@@ -21,6 +22,7 @@ export default function ShareDialog({
   snippetId,
   snippetShortId,
   onSnippetCreated,
+  onSaveRequired,
 }: ShareDialogProps) {
   const { data: session } = useSession()
   const [shareUrl, setShareUrl] = useState("")
@@ -51,6 +53,10 @@ export default function ShareDialog({
   }, [html, open, lastSharedHtml])
 
   const handleShare = useCallback(async () => {
+    if (permission === "edit" && !snippetId) {
+      onSaveRequired?.()
+      return
+    }
     setLoading(true)
     setError("")
     try {
@@ -104,6 +110,7 @@ export default function ShareDialog({
     snippetId,
     snippetShortId,
     onSnippetCreated,
+    onSaveRequired,
   ])
 
   const handleCopy = useCallback(async () => {
@@ -351,6 +358,8 @@ export default function ShareDialog({
                 ? shareUrl
                   ? "Updating..."
                   : "Creating..."
+                : permission === "edit" && !snippetId
+                ? "Save File First to Enable Editing"
                 : shareUrl
                 ? hasChanges
                   ? "Push Changes to Shared Link"

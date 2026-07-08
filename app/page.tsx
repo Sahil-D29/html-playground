@@ -477,6 +477,10 @@ function EditorContent() {
           setSnippetId(id)
           setSnippetShortId(shortId)
         }}
+        onSaveRequired={() => {
+          setShowShare(false)
+          setShowSave(true)
+        }}
       />
       <SaveDialog
         html={html}

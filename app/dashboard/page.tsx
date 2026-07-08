@@ -5,6 +5,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import StarButton from "@/components/StarButton"
+import FileComparison from "@/components/FileComparison"
 
 interface Snippet {
   id: string
@@ -40,6 +41,7 @@ export default function Dashboard() {
   const [recentEdits, setRecentEdits] = useState<RecentEdit[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<"snippets" | "projects" | "edits">("projects")
+  const [compareSnippetId, setCompareSnippetId] = useState<string | null>(null)
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth")
@@ -350,6 +352,12 @@ export default function Dashboard() {
                         </p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0 ml-3">
+                        <button
+                          onClick={() => setCompareSnippetId(edit.snippetId)}
+                          className="btn-ghost text-sm text-blue-600 dark:text-blue-400"
+                        >
+                          Compare
+                        </button>
                         <Link
                           href={`/?snippet=${edit.snippetShortId}`}
                           className="btn-ghost text-sm text-emerald-600 dark:text-emerald-400"
@@ -365,6 +373,13 @@ export default function Dashboard() {
           </>
         )}
       </div>
+
+      {compareSnippetId && (
+        <FileComparison
+          snippetId={compareSnippetId}
+          onClose={() => setCompareSnippetId(null)}
+        />
+      )}
     </div>
   )
 }
