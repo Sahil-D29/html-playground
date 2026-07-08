@@ -11,7 +11,7 @@ import { useAutosave } from "@/lib/useAutosave"
 import { useHistory } from "@/lib/useHistory"
 import { useServerAutosave } from "@/lib/useServerAutosave"
 import { useToast } from "@/components/Toast"
-import { toPng } from "html-to-image"
+import html2canvas from "html2canvas"
 
 const Editor = dynamic(() => import("@/components/Editor"), { ssr: false })
 
@@ -179,39 +179,53 @@ function EditorContent() {
   const handleDownloadImage = useCallback(async () => {
     const VIEWPORT_WIDTH = 800
 
-    const container = document.createElement("div")
-    container.style.position = "fixed"
-    container.style.top = "-9999px"
-    container.style.left = "-9999px"
-    container.style.width = `${VIEWPORT_WIDTH}px`
-    container.style.background = "white"
-    container.style.overflow = "hidden"
-    document.body.appendChild(container)
+    const iframe = document.createElement("iframe")
+    iframe.style.position = "fixed"
+    iframe.style.top = "-9999px"
+    iframe.style.left = "-9999px"
+    iframe.style.width = VIEWPORT_WIDTH + "px"
+    iframe.style.height = "1500px"
+    iframe.style.border = "none"
+    iframe.srcdoc = combinedHtml
+    document.body.appendChild(iframe)
 
-    const parsed = new DOMParser().parseFromString(combinedHtml, "text/html")
-    const headContent = parsed.head.innerHTML
-    const bodyContent = parsed.body.innerHTML
-    const bodyAttributes = Array.from(parsed.body.attributes)
-      .map((a) => `${a.name}="${a.value}"`)
-      .join(" ")
+    await new Promise<void>((resolve) => {
+      iframe.onload = () => resolve()
+    })
 
-    container.innerHTML = `
-      <style>${headContent.match(/<style[\s\S]*?<\/style>/gi)?.map((s) => s.replace(/<\/?style[^>]*>/gi, "")).join("\n") || ""}</style>
-      <div ${bodyAttributes}>${bodyContent}</div>
-    `
-
-    const inner = container.firstElementChild as HTMLElement
-    if (inner) {
-      inner.style.margin = "0"
-      inner.style.padding = inner.style.padding || "0"
+    const doc = iframe.contentDocument
+    if (!doc) {
+      document.body.removeChild(iframe)
+      return
     }
 
-    await document.fonts?.ready
+    await Promise.all([
+      Promise.all(
+        Array.from(doc.images).map(
+          (img) =>
+            new Promise<void>((resolve) => {
+              if (img.complete) resolve()
+              else {
+                img.onload = () => resolve()
+                img.onerror = () => resolve()
+              }
+            })
+        )
+      ),
+      doc.fonts?.ready ?? Promise.resolve(),
+    ])
 
+    const iframeDoc = doc
     await new Promise<void>((resolve) => {
       let frames = 0
       function check() {
         frames++
+        const bodyHeight = iframeDoc.body?.scrollHeight ?? 0
+        const htmlHeight = iframeDoc.documentElement.scrollHeight
+        const maxHeight = Math.max(bodyHeight, htmlHeight)
+        if (maxHeight > 0) {
+          iframe.style.height = maxHeight + "px"
+        }
         if (frames >= 3) { resolve(); return }
         requestAnimationFrame(check)
       }
@@ -219,19 +233,30 @@ function EditorContent() {
     })
 
     try {
-      const dataUrl = await toPng(container, {
-        pixelRatio: 2,
-        backgroundColor: "#ffffff",
+      const canvas = await html2canvas(doc.documentElement, {
+        scale: 2,
+        backgroundColor: null,
+        logging: false,
+        useCORS: true,
+        allowTaint: true,
+        foreignObjectRendering: true,
         width: VIEWPORT_WIDTH,
-        cacheBust: true,
+        windowWidth: VIEWPORT_WIDTH,
       })
-      const a = document.createElement("a")
-      a.href = dataUrl
-      a.download = projectName ? `${projectName}.png` : "playground.png"
-      a.click()
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob((b) => resolve(b), "image/png")
+      )
+      if (blob) {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = projectName ? `${projectName}.png` : "playground.png"
+        a.click()
+        URL.revokeObjectURL(url)
+      }
       toast("Image downloaded", "success")
     } finally {
-      document.body.removeChild(container)
+      document.body.removeChild(iframe)
     }
   }, [combinedHtml, projectName, toast])
 
