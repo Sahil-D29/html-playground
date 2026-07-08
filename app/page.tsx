@@ -11,7 +11,7 @@ import { useAutosave } from "@/lib/useAutosave"
 import { useHistory } from "@/lib/useHistory"
 import { useServerAutosave } from "@/lib/useServerAutosave"
 import { useToast } from "@/components/Toast"
-import html2canvas from "html2canvas"
+import { toPng } from "html-to-image"
 
 const Editor = dynamic(() => import("@/components/Editor"), { ssr: false })
 
@@ -178,25 +178,30 @@ function EditorContent() {
 
   const handleDownloadImage = useCallback(async () => {
     const VIEWPORT_WIDTH = 800
-    const INITIAL_HEIGHT = VIEWPORT_WIDTH * 1.5
+
+    const container = document.createElement("div")
+    container.style.position = "fixed"
+    container.style.top = "-9999px"
+    container.style.left = "-9999px"
+    container.style.width = `${VIEWPORT_WIDTH}px`
+    container.style.background = "white"
+    document.body.appendChild(container)
 
     const iframe = document.createElement("iframe")
-    iframe.style.position = "fixed"
-    iframe.style.top = "-9999px"
-    iframe.style.left = "-9999px"
     iframe.style.width = `${VIEWPORT_WIDTH}px`
-    iframe.style.height = `${INITIAL_HEIGHT}px`
     iframe.style.border = "none"
+    iframe.style.display = "block"
+    container.appendChild(iframe)
+
     iframe.srcdoc = combinedHtml
-    document.body.appendChild(iframe)
 
     await new Promise<void>((resolve) => {
       iframe.onload = () => resolve()
     })
 
-    const doc = iframe.contentDocument!
+    const doc = iframe.contentDocument
     if (!doc) {
-      document.body.removeChild(iframe)
+      document.body.removeChild(container)
       return
     }
 
@@ -216,15 +221,17 @@ function EditorContent() {
       doc.fonts?.ready ?? Promise.resolve(),
     ])
 
+    const iframeDoc = doc
     await new Promise<void>((resolve) => {
       let frames = 0
       function check() {
         frames++
-        const bodyHeight = doc.body?.scrollHeight ?? 0
-        const htmlHeight = doc.documentElement.scrollHeight
+        const bodyHeight = iframeDoc.body?.scrollHeight ?? 0
+        const htmlHeight = iframeDoc.documentElement.scrollHeight
         const maxHeight = Math.max(bodyHeight, htmlHeight)
-        if (maxHeight > 0 && doc.body?.offsetHeight !== undefined) {
+        if (maxHeight > 0) {
           iframe.style.height = `${maxHeight}px`
+          container.style.height = `${maxHeight}px`
         }
         if (frames >= 3) { resolve(); return }
         requestAnimationFrame(check)
@@ -233,24 +240,19 @@ function EditorContent() {
     })
 
     try {
-      const canvas = await html2canvas(doc.documentElement, {
-        scale: 2,
+      const dataUrl = await toPng(container, {
+        pixelRatio: 2,
         backgroundColor: "#ffffff",
-        logging: false,
-        useCORS: true,
+        width: VIEWPORT_WIDTH,
+        cacheBust: true,
       })
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), "image/png"))
-      if (blob) {
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = projectName ? `${projectName}.png` : "playground.png"
-        a.click()
-        URL.revokeObjectURL(url)
-      }
+      const a = document.createElement("a")
+      a.href = dataUrl
+      a.download = projectName ? `${projectName}.png` : "playground.png"
+      a.click()
       toast("Image downloaded", "success")
     } finally {
-      document.body.removeChild(iframe)
+      document.body.removeChild(container)
     }
   }, [combinedHtml, projectName, toast])
 
