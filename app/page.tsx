@@ -179,6 +179,34 @@ function EditorContent() {
   const handleDownloadImage = useCallback(async () => {
     const VIEWPORT_WIDTH = 800
 
+    async function imgToDataUri(src: string): Promise<string> {
+      try {
+        const res = await fetch(src)
+        const blob = await res.blob()
+        return await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onloadend = () => resolve(reader.result as string)
+          reader.onerror = reject
+          reader.readAsDataURL(blob)
+        })
+      } catch {
+        return src
+      }
+    }
+
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(combinedHtml, "text/html")
+    const imgs = Array.from(doc.querySelectorAll("img"))
+    await Promise.all(
+      imgs.map(async (img) => {
+        const src = img.getAttribute("src")
+        if (src && !src.startsWith("data:")) {
+          img.setAttribute("src", await imgToDataUri(src))
+        }
+      })
+    )
+    const processedHtml = "<!DOCTYPE html>\n" + doc.documentElement.outerHTML
+
     const iframe = document.createElement("iframe")
     iframe.style.position = "fixed"
     iframe.style.top = "-9999px"
@@ -186,42 +214,28 @@ function EditorContent() {
     iframe.style.width = VIEWPORT_WIDTH + "px"
     iframe.style.height = "1500px"
     iframe.style.border = "none"
-    iframe.srcdoc = combinedHtml
+    iframe.srcdoc = processedHtml
     document.body.appendChild(iframe)
 
     await new Promise<void>((resolve) => {
       iframe.onload = () => resolve()
     })
 
-    const doc = iframe.contentDocument
-    if (!doc) {
+    const iframeDoc = iframe.contentDocument
+    if (!iframeDoc) {
       document.body.removeChild(iframe)
       return
     }
 
-    await Promise.all([
-      Promise.all(
-        Array.from(doc.images).map(
-          (img) =>
-            new Promise<void>((resolve) => {
-              if (img.complete) resolve()
-              else {
-                img.onload = () => resolve()
-                img.onerror = () => resolve()
-              }
-            })
-        )
-      ),
-      doc.fonts?.ready ?? Promise.resolve(),
-    ])
+    await iframeDoc.fonts?.ready
 
-    const iframeDoc = doc
+    const iframeContentDoc = iframeDoc
     await new Promise<void>((resolve) => {
       let frames = 0
       function check() {
         frames++
-        const bodyHeight = iframeDoc.body?.scrollHeight ?? 0
-        const htmlHeight = iframeDoc.documentElement.scrollHeight
+        const bodyHeight = iframeContentDoc.body?.scrollHeight ?? 0
+        const htmlHeight = iframeContentDoc.documentElement.scrollHeight
         const maxHeight = Math.max(bodyHeight, htmlHeight)
         if (maxHeight > 0) {
           iframe.style.height = maxHeight + "px"
@@ -233,7 +247,7 @@ function EditorContent() {
     })
 
     try {
-      const canvas = await html2canvas(doc.documentElement, {
+      const canvas = await html2canvas(iframeDoc.documentElement, {
         scale: 2,
         backgroundColor: null,
         logging: false,
