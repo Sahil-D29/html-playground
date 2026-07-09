@@ -33,6 +33,20 @@ export async function PATCH(
     const session = await getServerSession(authOptions)
     const { html, permission, editMode, syncMode } = await req.json()
 
+    const snippet = await prisma.snippet.findUnique({
+      where: { shortId: params.id },
+    })
+    if (!snippet) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 })
+    }
+
+    // If snippet has an owner, only the owner can change settings
+    // But anyone can update html when permission is "edit"
+    const isSettingChange = permission || editMode || syncMode
+    if (isSettingChange && snippet.userId && snippet.userId !== session?.user?.id) {
+      return NextResponse.json({ error: "Not authorized" }, { status: 403 })
+    }
+
     const updateData: Record<string, any> = {}
     if (html) updateData.html = html
     if (permission) updateData.permission = permission
@@ -44,16 +58,6 @@ export async function PATCH(
         { error: "No data to update" },
         { status: 400 }
       )
-    }
-
-    const snippet = await prisma.snippet.findUnique({
-      where: { shortId: params.id },
-    })
-    if (!snippet) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 })
-    }
-    if (snippet.userId && snippet.userId !== session?.user?.id) {
-      return NextResponse.json({ error: "Not authorized" }, { status: 403 })
     }
 
     const updated = await prisma.snippet.update({

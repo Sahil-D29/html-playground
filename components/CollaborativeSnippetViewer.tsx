@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useToast } from "@/components/Toast"
 import { useCollaboration, CollabUser } from "@/lib/useCollaboration"
@@ -35,6 +35,7 @@ export default function CollaborativeSnippetViewer({
   const [saving, setSaving] = useState(false)
   const [username, setUsername] = useState("")
   const [nameReady, setNameReady] = useState(false)
+  const autoSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Load username from localStorage
   useEffect(() => {
@@ -77,17 +78,47 @@ export default function CollaborativeSnippetViewer({
     setHtml(content)
   }, [])
 
+  // Auto-sync: when syncMode is "auto", debounce Yjs changes and push to Snippet.html
+  useEffect(() => {
+    if (!ytext || syncMode !== "auto") return
+
+    const handler = () => {
+      if (autoSyncTimerRef.current) clearTimeout(autoSyncTimerRef.current)
+      autoSyncTimerRef.current = setTimeout(async () => {
+        try {
+          const content = ytext.toString()
+          await fetch(`/api/snippets/${shortId}/sync`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ html: content, author: username || "owner" }),
+          })
+        } catch {
+          // silent — will retry on next change
+        }
+      }, 5000)
+    }
+
+    ytext.observe(handler)
+    return () => {
+      ytext.unobserve(handler)
+      if (autoSyncTimerRef.current) clearTimeout(autoSyncTimerRef.current)
+    }
+  }, [ytext, syncMode, shortId, username])
+
   const handlePreviewEdit = useCallback((val: string) => {
     setHtml(val)
   }, [])
 
+  // Save: reads directly from ytext (live content, not stale state)
   const handleSave = useCallback(async () => {
+    if (!ytext) return
     setSaving(true)
     try {
+      const content = ytext.toString()
       const res = await fetch(`/api/snippets/${shortId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ html }),
+        body: JSON.stringify({ html: content }),
       })
       if (!res.ok) throw new Error("Failed to save")
       toast("Snippet saved!", "success")
@@ -96,17 +127,17 @@ export default function CollaborativeSnippetViewer({
     } finally {
       setSaving(false)
     }
-  }, [shortId, html, toast])
+  }, [shortId, ytext, toast])
 
   const handleRestore = useCallback(
     (restoredHtml: string) => {
       const ydoc = getYDoc()
-      const undoManager = getUndoManager()
+      const um = getUndoManager()
       if (ydoc) {
-        const ytext = ydoc.getText("codemirror")
+        const yt = ydoc.getText("codemirror")
         ydoc.transact(() => {
-          ytext.delete(0, ytext.length)
-          ytext.insert(0, restoredHtml)
+          yt.delete(0, yt.length)
+          yt.insert(0, restoredHtml)
         })
         setHtml(restoredHtml)
         toast("Version restored!", "success")
@@ -115,13 +146,16 @@ export default function CollaborativeSnippetViewer({
     [getYDoc, getUndoManager, toast]
   )
 
+  // Push to Main: reads directly from ytext (live content, not stale state)
   const handlePushToMain = useCallback(async () => {
+    if (!ytext) return
     setSaving(true)
     try {
+      const content = ytext.toString()
       const res = await fetch(`/api/snippets/${shortId}/sync`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ html, author: username }),
+        body: JSON.stringify({ html: content, author: username }),
       })
       if (!res.ok) throw new Error("Failed to push changes")
       toast("Changes pushed to main file!", "success")
@@ -130,7 +164,7 @@ export default function CollaborativeSnippetViewer({
     } finally {
       setSaving(false)
     }
-  }, [shortId, html, username, toast])
+  }, [shortId, ytext, username, toast])
 
   const handleNameChange = useCallback((newName: string) => {
     setUsername(newName)
@@ -171,6 +205,11 @@ export default function CollaborativeSnippetViewer({
           <span className="rounded bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/30">
             Can edit
           </span>
+          {syncMode === "auto" && (
+            <span className="rounded bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/30">
+              Auto-sync
+            </span>
+          )}
           {syncMode === "manual" && (
             <span className="rounded bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/30">
               Manual sync
@@ -192,7 +231,7 @@ export default function CollaborativeSnippetViewer({
           <SaveSnippetButton html={html} title={title} />
           <button
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || !ytext}
             className="btn-secondary text-xs"
           >
             {saving ? (
@@ -207,18 +246,16 @@ export default function CollaborativeSnippetViewer({
             )}
             <span className="hidden sm:inline">{saving ? "Saving..." : "Save"}</span>
           </button>
-          {syncMode === "manual" && (
-            <button
-              onClick={handlePushToMain}
-              disabled={saving}
-              className="btn-primary text-xs"
-            >
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-              </svg>
-              <span className="hidden sm:inline">Push to Main</span>
-            </button>
-          )}
+          <button
+            onClick={handlePushToMain}
+            disabled={saving || !ytext}
+            className="btn-primary text-xs"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            <span className="hidden sm:inline">Push to Main</span>
+          </button>
           <Link href="/" className="btn-primary text-xs">
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />

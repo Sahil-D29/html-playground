@@ -107,6 +107,24 @@ function EditorContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, getDraft])
 
+  // Poll for snippet updates when a snippet is loaded
+  useEffect(() => {
+    if (!snippetShortId) return
+
+    const poll = setInterval(() => {
+      fetch(`/api/snippets/${snippetShortId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.html) {
+            setHtml(data.html)
+          }
+        })
+        .catch(() => {})
+    }, 5000)
+
+    return () => clearInterval(poll)
+  }, [snippetShortId])
+
   const handleHtmlChange = useCallback(
     (val: string) => {
       setHtml(val)
