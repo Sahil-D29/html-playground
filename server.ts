@@ -18,42 +18,50 @@ interface Client {
 }
 
 const docs = new Map<string, Y.Doc>()
+const docPromises = new Map<string, Promise<Y.Doc>>()
 const awarenessStates = new Map<string, awarenessProtocol.Awareness>()
 const clients = new Map<WebSocket, Client>()
 
-function getYDoc(docName: string): Y.Doc {
+async function getYDoc(docName: string): Promise<Y.Doc> {
   if (docs.has(docName)) return docs.get(docName)!
 
-  const doc = new Y.Doc()
-  docs.set(docName, doc)
+  if (docPromises.has(docName)) return docPromises.get(docName)!
 
-  const awareness = new awarenessProtocol.Awareness(doc)
-  awareness.setLocalState(null)
-  awarenessStates.set(docName, awareness)
+  const promise = (async () => {
+    const doc = new Y.Doc()
+    docs.set(docName, doc)
 
-  awareness.on("update", ({ added, updated, removed }: { added: number[], updated: number[], removed: number[] }) => {
-    const changedClients = added.concat(updated).concat(removed)
-    const roomClients = Array.from(clients.values()).filter(
-      (c) => c.docName === docName
-    )
-    const encoder = encoding.createEncoder()
-    encoding.writeVarUint(encoder, messageAwareness)
-    encoding.writeVarUint8Array(
-      encoder,
-      awarenessProtocol.encodeAwarenessUpdate(awareness, changedClients)
-    )
-    const msg = encoding.toUint8Array(encoder)
-    roomClients.forEach((client) => {
-      if (client.ws.readyState === WebSocket.OPEN) {
-        client.ws.send(msg)
-      }
+    const awareness = new awarenessProtocol.Awareness(doc)
+    awareness.setLocalState(null)
+    awarenessStates.set(docName, awareness)
+
+    awareness.on("update", ({ added, updated, removed }: { added: number[], updated: number[], removed: number[] }) => {
+      const changedClients = added.concat(updated).concat(removed)
+      const roomClients = Array.from(clients.values()).filter(
+        (c) => c.docName === docName
+      )
+      const encoder = encoding.createEncoder()
+      encoding.writeVarUint(encoder, messageAwareness)
+      encoding.writeVarUint8Array(
+        encoder,
+        awarenessProtocol.encodeAwarenessUpdate(awareness, changedClients)
+      )
+      const msg = encoding.toUint8Array(encoder)
+      roomClients.forEach((client) => {
+        if (client.ws.readyState === WebSocket.OPEN) {
+          client.ws.send(msg)
+        }
+      })
     })
-  })
 
-  // Load persisted state
-  bindState(docName, doc).catch(() => {})
+    // Load persisted state — AWAIT so doc is ready before sync
+    await bindState(docName, doc)
 
-  return doc
+    return doc
+  })()
+
+  docPromises.set(docName, promise)
+  return promise
 }
 
 function handleMessage(ws: WebSocket, client: Client, data: Buffer) {
@@ -64,8 +72,10 @@ function handleMessage(ws: WebSocket, client: Client, data: Buffer) {
 
     switch (messageType) {
       case messageSync: {
-        const doc = getYDoc(client.docName)
-        syncProtocol.readSyncMessage(decoder, encoding.createEncoder(), doc, null)
+        const doc = docs.get(client.docName)
+        if (doc) {
+          syncProtocol.readSyncMessage(decoder, encoding.createEncoder(), doc, null)
+        }
         break
       }
       case messageAwareness: {
@@ -83,7 +93,7 @@ function handleMessage(ws: WebSocket, client: Client, data: Buffer) {
   }
 }
 
-function handleConnection(ws: WebSocket, req: any) {
+async function handleConnection(ws: WebSocket, req: any) {
   const url = new URL(req.url || "/", `http://localhost:${WS_PORT}`)
   const docName = url.pathname.slice(1) || "default"
 
@@ -92,58 +102,59 @@ function handleConnection(ws: WebSocket, req: any) {
     return
   }
 
-  const doc = getYDoc(docName)
-  const awareness = awarenessStates.get(docName)!
+  try {
+    const doc = await getYDoc(docName)
+    const awareness = awarenessStates.get(docName)!
 
-  const client: Client = { ws, docName, awareness }
-  clients.set(ws, client)
+    const client: Client = { ws, docName, awareness }
+    clients.set(ws, client)
 
-  // Send sync step 1
-  const encoder = encoding.createEncoder()
-  encoding.writeVarUint(encoder, messageSync)
-  syncProtocol.writeSyncStep1(encoder, doc)
-  ws.send(encoding.toUint8Array(encoder))
+    // Send sync step 1 — doc is now guaranteed to have loaded content
+    const encoder = encoding.createEncoder()
+    encoding.writeVarUint(encoder, messageSync)
+    syncProtocol.writeSyncStep1(encoder, doc)
+    ws.send(encoding.toUint8Array(encoder))
 
-  // Send current awareness states
-  const awarenessEncoder = encoding.createEncoder()
-  encoding.writeVarUint(awarenessEncoder, messageAwareness)
-  encoding.writeVarUint8Array(
-    awarenessEncoder,
-    awarenessProtocol.encodeAwarenessUpdate(
-      awareness,
-      Array.from(awareness.getStates().keys())
-    )
-  )
-  ws.send(encoding.toUint8Array(awarenessEncoder))
-
-  ws.on("message", (data) => handleMessage(ws, client, data as Buffer))
-
-  ws.on("close", () => {
-    clients.delete(ws)
-
-    // Remove awareness state for this client
-    if (client.awareness) {
-      awarenessProtocol.removeAwarenessStates(
-        client.awareness,
-        [client.awareness.clientID],
-        null
+    // Send current awareness states
+    const awarenessEncoder = encoding.createEncoder()
+    encoding.writeVarUint(awarenessEncoder, messageAwareness)
+    encoding.writeVarUint8Array(
+      awarenessEncoder,
+      awarenessProtocol.encodeAwarenessUpdate(
+        awareness,
+        Array.from(awareness.getStates().keys())
       )
-    }
-
-    // If no more clients in this room, persist and cleanup
-    const roomClients = Array.from(clients.values()).filter(
-      (c) => c.docName === docName
     )
-    if (roomClients.length === 0) {
-      writeState(docName, doc).then(() => {
-        // Don't destroy the doc — keep it in memory for quick reconnection
-      })
-    }
-  })
+    ws.send(encoding.toUint8Array(awarenessEncoder))
 
-  ws.on("error", (err) => {
-    console.error("WebSocket error:", err)
-  })
+    ws.on("message", (data) => handleMessage(ws, client, data as Buffer))
+
+    ws.on("close", () => {
+      clients.delete(ws)
+
+      if (client.awareness) {
+        awarenessProtocol.removeAwarenessStates(
+          client.awareness,
+          [client.awareness.clientID],
+          null
+        )
+      }
+
+      const roomClients = Array.from(clients.values()).filter(
+        (c) => c.docName === docName
+      )
+      if (roomClients.length === 0) {
+        writeState(docName, doc).then(() => {})
+      }
+    })
+
+    ws.on("error", (err) => {
+      console.error("WebSocket error:", err)
+    })
+  } catch (err) {
+    console.error("Failed to load doc:", err)
+    ws.close(1011, "Failed to load document")
+  }
 }
 
 const wss = new WebSocketServer({ port: WS_PORT })
@@ -152,7 +163,6 @@ wss.on("connection", handleConnection)
 
 console.log(`WebSocket server running on ws://localhost:${WS_PORT}`)
 
-// Graceful shutdown
 process.on("SIGINT", async () => {
   console.log("Shutting down WebSocket server...")
   wss.close()

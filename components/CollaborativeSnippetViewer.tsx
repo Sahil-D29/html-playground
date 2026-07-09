@@ -95,7 +95,7 @@ export default function CollaborativeSnippetViewer({
         } catch {
           // silent — will retry on next change
         }
-      }, 5000)
+      }, 2000)
     }
 
     ytext.observe(handler)

@@ -292,37 +292,6 @@ export default function SaveDialog({
                     />
                   </div>
 
-                  <div className="mb-4">
-                    <label className="label">Who can access</label>
-                    <div className="flex gap-2 rounded-lg bg-gray-100 dark:bg-gray-800/50 p-1">
-                      <button
-                        onClick={() => setPermission("view")}
-                        className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
-                          permission === "view"
-                            ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
-                            : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                        }`}
-                      >
-                        View only
-                      </button>
-                      <button
-                        onClick={() => setPermission("edit")}
-                        className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
-                          permission === "edit"
-                            ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
-                            : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                        }`}
-                      >
-                        Can edit
-                      </button>
-                    </div>
-                    <p className="mt-1.5 text-xs text-gray-500">
-                      {permission === "view"
-                        ? "Viewers can only see the rendered output."
-                        : "Viewers can modify the source code in real-time."}
-                    </p>
-                  </div>
-
                   <p className="text-xs text-gray-500">
                     Creates a shareable snippet
                     {authenticated ? " linked to your account" : ""}.
