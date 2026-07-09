@@ -17,6 +17,11 @@ export async function POST(req: NextRequest) {
     const { nanoid } = await import("nanoid")
     const shortId = nanoid(8)
 
+    // Link the snippet to the logged-in user so it shows up in their account
+    const { getServerSession } = await import("next-auth")
+    const { authOptions } = await import("@/lib/auth")
+    const session = await getServerSession(authOptions)
+
     const snippet = await prisma.snippet.create({
       data: {
         html,
@@ -26,6 +31,7 @@ export async function POST(req: NextRequest) {
         editMode: editMode || "code",
         syncMode: syncMode || "auto",
         projectFileId: projectFileId || null,
+        userId: session?.user?.id || null,
       },
     })
 

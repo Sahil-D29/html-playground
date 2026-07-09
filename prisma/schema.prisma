@@ -60,6 +60,7 @@ model Snippet {
   shortId       String             @unique
   title         String             @default("Untitled")
   html          String
+  state         Bytes?
   permission    String             @default("view")
   editMode      String             @default("code")
   syncMode      String             @default("auto")

@@ -44,5 +44,11 @@ export function useServerAutosave(html: string, enabled: boolean, projectFileId:
     }
   }, [html, enabled, projectFileId, doSave])
 
-  return { saving, lastSaved }
+  // Immediate save (e.g. Ctrl+S) — skips the debounce
+  const saveNow = useCallback(() => {
+    if (timer.current) clearTimeout(timer.current)
+    return doSave()
+  }, [doSave])
+
+  return { saving, lastSaved, saveNow }
 }

@@ -3,9 +3,8 @@
 import { useEffect, useRef, useCallback } from "react"
 
 const AUTOSAVE_KEY = "html-playground-autosave"
-const SNIPPET_SESSION_KEY = "html-playground-active-snippet"
 
-export function useAutosave(html: string) {
+export function useAutosave(html: string, enabled: boolean = true) {
   const savedRef = useRef(html)
 
   useEffect(() => {
@@ -17,6 +16,10 @@ export function useAutosave(html: string) {
   }, [])
 
   useEffect(() => {
+    // Only persist drafts in plain playground mode — content loaded from a
+    // snippet or project file must never overwrite the standalone draft
+    if (!enabled) return
+
     const timer = setTimeout(() => {
       if (html !== savedRef.current) {
         localStorage.setItem(AUTOSAVE_KEY, html)
@@ -24,7 +27,7 @@ export function useAutosave(html: string) {
       }
     }, 1000)
     return () => clearTimeout(timer)
-  }, [html])
+  }, [html, enabled])
 
   const getDraft = useCallback(() => {
     // Don't restore draft if user is viewing a snippet

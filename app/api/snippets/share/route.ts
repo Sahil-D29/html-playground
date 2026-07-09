@@ -34,7 +34,10 @@ export async function POST(req: NextRequest) {
     }
 
     const resend = new Resend(process.env.RESEND_API_KEY)
-    const origin = req.headers.get("origin") || "http://localhost:3000"
+    const origin =
+      req.headers.get("origin") ||
+      process.env.NEXTAUTH_URL ||
+      "http://localhost:3000"
     const link = `${origin}/snippets/${shortId}`
 
     await resend.emails.send({

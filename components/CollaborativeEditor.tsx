@@ -60,6 +60,9 @@ export default function CollaborativeEditor({
 
   return (
     <CodeMirror
+      // Seed the editor with the current ytext content — yCollab only
+      // applies deltas, so content synced before mount would never render
+      value={ytext.toString()}
       height="100%"
       extensions={[
         extensions[lang],

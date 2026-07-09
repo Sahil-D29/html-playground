@@ -20,6 +20,8 @@ interface SaveDialogProps {
   projectId?: string | null
   projectName?: string
   initialFileName?: string
+  snippetShortId?: string | null
+  initialSnippetTitle?: string
   onSaved?: (data: {
     title?: string
     shortId?: string
@@ -36,6 +38,8 @@ export default function SaveDialog({
   projectId: initialProjectId,
   projectName: initialProjectName,
   initialFileName,
+  snippetShortId,
+  initialSnippetTitle,
   onSaved,
 }: SaveDialogProps) {
   const { data: session } = useSession()
@@ -56,6 +60,12 @@ export default function SaveDialog({
   const [showCreateProject, setShowCreateProject] = useState(false)
 
   useEffect(() => {
+    if (open && initialSnippetTitle) {
+      setSnippetTitle(initialSnippetTitle)
+    }
+  }, [open, initialSnippetTitle])
+
+  useEffect(() => {
     if (open && session) {
       fetch("/api/projects")
         .then((res) => res.json())
@@ -73,22 +83,33 @@ export default function SaveDialog({
     setError("")
     try {
       if (mode === "snippet") {
-        const res = await fetch("/api/snippets", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            html,
-            title: snippetTitle.trim() || undefined,
-            permission,
-          }),
-        })
+        // Update the existing snippet in place so the shared link keeps
+        // working; only create a new one when none exists yet
+        const res = snippetShortId
+          ? await fetch(`/api/snippets/${snippetShortId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                html,
+                title: snippetTitle.trim() || undefined,
+              }),
+            })
+          : await fetch("/api/snippets", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                html,
+                title: snippetTitle.trim() || undefined,
+                permission,
+              }),
+            })
         if (!res.ok) throw new Error("Failed to save snippet")
         const data = await res.json()
         onSaved?.({
           title: data.title,
           shortId: data.shortId,
           id: data.id,
-          permission,
+          permission: data.permission || permission,
         })
       } else {
         if (!selectedProject) throw new Error("Select a project")
@@ -142,6 +163,7 @@ export default function SaveDialog({
     fileName,
     router,
     initialFileId,
+    snippetShortId,
     onSaved,
   ])
 

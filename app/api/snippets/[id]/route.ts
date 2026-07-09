@@ -16,7 +16,9 @@ export async function GET(
     if (!snippet) {
       return NextResponse.json({ error: "Not found" }, { status: 404 })
     }
-    return NextResponse.json(snippet)
+    // Don't ship the binary Yjs state blob to clients
+    const { state: _state, ...rest } = snippet
+    return NextResponse.json(rest)
   } catch {
     return NextResponse.json(
       { error: "Something went wrong" },
@@ -31,7 +33,7 @@ export async function PATCH(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    const { html, permission, editMode, syncMode } = await req.json()
+    const { html, title, permission, editMode, syncMode } = await req.json()
 
     const snippet = await prisma.snippet.findUnique({
       where: { shortId: params.id },
@@ -42,13 +44,14 @@ export async function PATCH(
 
     // If snippet has an owner, only the owner can change settings
     // But anyone can update html when permission is "edit"
-    const isSettingChange = permission || editMode || syncMode
+    const isSettingChange = title || permission || editMode || syncMode
     if (isSettingChange && snippet.userId && snippet.userId !== session?.user?.id) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 })
     }
 
     const updateData: Record<string, any> = {}
     if (html) updateData.html = html
+    if (title?.trim()) updateData.title = title.trim()
     if (permission) updateData.permission = permission
     if (editMode) updateData.editMode = editMode
     if (syncMode) updateData.syncMode = syncMode

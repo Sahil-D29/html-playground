@@ -1,19 +1,26 @@
 "use client"
 
 import { Suspense, useState, useCallback, useEffect, useRef } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import dynamic from "next/dynamic"
 import Preview from "@/components/Preview"
 import ShareDialog from "@/components/ShareDialog"
 import SaveDialog from "@/components/SaveDialog"
 import VersionDropdown from "@/components/VersionDropdown"
+import PresenceBar from "@/components/PresenceBar"
 import { useAutosave } from "@/lib/useAutosave"
+import { useCollaboration } from "@/lib/useCollaboration"
 import { useHistory } from "@/lib/useHistory"
 import { useServerAutosave } from "@/lib/useServerAutosave"
 import { useToast } from "@/components/Toast"
 import html2canvas from "html2canvas"
 
 const Editor = dynamic(() => import("@/components/Editor"), { ssr: false })
+const CollaborativeEditor = dynamic(
+  () => import("@/components/CollaborativeEditor"),
+  { ssr: false }
+)
 
 const DEFAULT_HTML = `<!DOCTYPE html>
 <html>
@@ -36,6 +43,8 @@ type EditorTab = "html" | "css" | "js"
 
 function EditorContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
+  const { data: session } = useSession()
   const { toast } = useToast()
   const [html, setHtml] = useState(DEFAULT_HTML)
   const [cssCode, setCssCode] = useState("")
@@ -55,12 +64,47 @@ function EditorContent() {
   const [snippetShortId, setSnippetShortId] = useState<string | null>(null)
   const [snippetTitle, setSnippetTitle] = useState("")
   const editorRef = useRef<HTMLDivElement>(null)
-  const { getDraft, clearDraft } = useAutosave(html)
+  const loadedSnippetRef = useRef<string | null>(null)
+  // Draft autosave only in plain playground mode — never overwrite the
+  // local draft with content loaded from a snippet or project file
+  const { getDraft, clearDraft } = useAutosave(
+    html,
+    !snippetShortId && !projectFileId
+  )
   const history = useHistory(DEFAULT_HTML)
-  const { saving: autoSaving, lastSaved } = useServerAutosave(html, autoSave && !!projectFileId, projectFileId, projectId)
+  const { saving: autoSaving, lastSaved, saveNow } = useServerAutosave(html, autoSave && !!projectFileId, projectFileId, projectId)
+
+  // Live collaboration: when a snippet is loaded/saved/shared, the main
+  // editor joins the same Yjs room as everyone using the share link
+  const [ownerName, setOwnerName] = useState("Owner")
+  useEffect(() => {
+    const stored = localStorage.getItem("collab-username")
+    setOwnerName(session?.user?.name || stored || "Owner")
+  }, [session])
+
+  const { connectedUsers, isConnected, ytext, provider, undoManager, getYDoc } =
+    useCollaboration(snippetShortId || "", ownerName, !!snippetShortId)
+
+  const collabActive = !!snippetShortId && !!ytext && !!provider && !!undoManager
+
+  // Programmatic content changes (restore, reset, preview edits) must go
+  // through the Yjs doc while collaborating, or they'd be lost on next sync
+  const applyHtml = useCallback(
+    (val: string) => {
+      const ydoc = getYDoc()
+      if (snippetShortId && ydoc && ytext && ytext.toString() !== val) {
+        ydoc.transact(() => {
+          ytext.delete(0, ytext.length)
+          ytext.insert(0, val)
+        })
+      }
+      setHtml(val)
+    },
+    [snippetShortId, getYDoc, ytext]
+  )
 
   useEffect(() => {
-    setHtml(history.current)
+    applyHtml(history.current)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [history.current])
 
@@ -72,12 +116,15 @@ function EditorContent() {
     const snippetShortId = searchParams.get("snippet")
 
     if (snippetShortId) {
+      // Skip refetch when the URL was updated to a snippet we already hold
+      // (e.g. right after saving) — refetching would clobber live edits
+      if (snippetShortId === loadedSnippetRef.current) return
       fetch(`/api/snippets/${snippetShortId}`)
         .then((res) => res.json())
         .then((data) => {
           if (data.html) {
+            loadedSnippetRef.current = data.shortId
             setHtml(data.html)
-            clearDraft()
             setSnippetId(data.id)
             setSnippetShortId(data.shortId)
             setSnippetTitle(data.title || "")
@@ -107,24 +154,6 @@ function EditorContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, getDraft])
 
-  // Poll for snippet updates when a snippet is loaded
-  useEffect(() => {
-    if (!snippetShortId) return
-
-    const poll = setInterval(() => {
-      fetch(`/api/snippets/${snippetShortId}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.html) {
-            setHtml(data.html)
-          }
-        })
-        .catch(() => {})
-    }, 5000)
-
-    return () => clearInterval(poll)
-  }, [snippetShortId])
-
   const handleHtmlChange = useCallback(
     (val: string) => {
       setHtml(val)
@@ -133,12 +162,17 @@ function EditorContent() {
     [history]
   )
 
+  // Live content coming from the collaborative editor (own + remote edits)
+  const handleCollabContentChange = useCallback((val: string) => {
+    setHtml(val)
+  }, [])
+
   const handlePreviewEdit = useCallback(
     (val: string) => {
-      setHtml(val)
+      applyHtml(val)
       history.push(val)
     },
-    [history]
+    [applyHtml, history]
   )
 
   const handleKeyDown = useCallback(
@@ -146,7 +180,8 @@ function EditorContent() {
       if ((e.ctrlKey || e.metaKey) && e.key === "s" && !e.shiftKey) {
         e.preventDefault()
         if (projectFileId && autoSave) {
-          toast("Auto-saved", "success")
+          saveNow()
+          toast("Saved", "success")
           return
         }
         setShowSave(true)
@@ -161,16 +196,20 @@ function EditorContent() {
       if (e.key === "Escape" && previewEditable) {
         setPreviewEditable(false)
       }
-      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
-        e.preventDefault()
-        if (history.canUndo) history.undo()
-      }
-      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) {
-        e.preventDefault()
-        if (history.canRedo) history.redo()
+      // While collaborating, undo/redo is handled by the Yjs UndoManager
+      // inside the editor — the local history would fight with it
+      if (!collabActive) {
+        if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+          e.preventDefault()
+          if (history.canUndo) history.undo()
+        }
+        if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) {
+          e.preventDefault()
+          if (history.canRedo) history.redo()
+        }
       }
     },
-    [fullscreen, history, projectFileId, autoSave, previewEditable, toast]
+    [fullscreen, history, projectFileId, autoSave, previewEditable, toast, saveNow, collabActive]
   )
 
   useEffect(() => {
@@ -295,17 +334,17 @@ function EditorContent() {
 
   const handleClearDraft = useCallback(() => {
     clearDraft()
-    setHtml(DEFAULT_HTML)
+    applyHtml(DEFAULT_HTML)
     toast("Editor cleared", "info")
-  }, [clearDraft, toast])
+  }, [clearDraft, applyHtml, toast])
 
   const handleReset = useCallback(() => {
-    setHtml(DEFAULT_HTML)
+    applyHtml(DEFAULT_HTML)
     setCssCode("")
     setJsCode("")
     clearDraft()
     toast("Reset to default", "info")
-  }, [clearDraft, toast])
+  }, [clearDraft, applyHtml, toast])
 
   return (
     <>
@@ -360,6 +399,12 @@ function EditorContent() {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              {collabActive && (
+                <>
+                  <PresenceBar users={connectedUsers} isConnected={isConnected} />
+                  <div className="toolbar-separator" />
+                </>
+              )}
               <button
                 onClick={() => setAutoSave((a) => !a)}
                 className={`btn-icon text-sm relative ${autoSave ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500"}`}
@@ -407,7 +452,18 @@ function EditorContent() {
             </div>
           </div>
           <div ref={editorRef} className="flex flex-1 flex-col overflow-hidden">
-            {activeTab === "html" && <Editor value={html} onChange={handleHtmlChange} lang="html" />}
+            {activeTab === "html" &&
+              (collabActive && ytext && provider && undoManager ? (
+                <CollaborativeEditor
+                  ytext={ytext}
+                  provider={provider}
+                  undoManager={undoManager}
+                  lang="html"
+                  onContentChange={handleCollabContentChange}
+                />
+              ) : (
+                <Editor value={html} onChange={handleHtmlChange} lang="html" />
+              ))}
             {activeTab === "css" && <Editor value={cssCode} onChange={setCssCode} lang="css" />}
             {activeTab === "js" && <Editor value={jsCode} onChange={setJsCode} lang="js" />}
           </div>
@@ -492,8 +548,11 @@ function EditorContent() {
         snippetId={snippetId}
         snippetShortId={snippetShortId}
         onSnippetCreated={(id, shortId) => {
+          loadedSnippetRef.current = shortId
           setSnippetId(id)
           setSnippetShortId(shortId)
+          // Put the snippet in the URL so a refresh reloads it
+          router.replace(`/?snippet=${shortId}`)
         }}
         onSaveRequired={() => {
           setShowShare(false)
@@ -508,11 +567,19 @@ function EditorContent() {
         projectId={projectId}
         projectName={projectName}
         initialFileName={fileName}
+        snippetShortId={snippetShortId}
+        initialSnippetTitle={snippetTitle}
         onSaved={(data) => {
-          clearDraft()
           if (data.title) setSnippetTitle(data.title)
           if (data.title && !projectName) setProjectName(data.title)
-          if (data.shortId) setSnippetShortId(data.shortId)
+          if (data.shortId) {
+            loadedSnippetRef.current = data.shortId
+            setSnippetShortId(data.shortId)
+            // Put the snippet in the URL so a refresh reloads it,
+            // then it's safe to drop the local draft
+            router.replace(`/?snippet=${data.shortId}`)
+            clearDraft()
+          }
           if (data.id) setSnippetId(data.id)
         }}
       />

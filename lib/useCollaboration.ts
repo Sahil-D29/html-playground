@@ -26,32 +26,35 @@ export function useCollaboration(
 ) {
   const [connectedUsers, setConnectedUsers] = useState<CollabUser[]>([])
   const [isConnected, setIsConnected] = useState(false)
+  const [ytext, setYtext] = useState<Y.Text | null>(null)
+  const [provider, setProvider] = useState<WebsocketProvider | null>(null)
+  const [undoManager, setUndoManager] = useState<Y.UndoManager | null>(null)
   const ydocRef = useRef<Y.Doc | null>(null)
   const providerRef = useRef<WebsocketProvider | null>(null)
   const undoManagerRef = useRef<Y.UndoManager | null>(null)
+  const colorRef = useRef(getRandomColor())
 
+  // Provider lifecycle depends only on the room — renaming yourself
+  // must not tear down the connection and doc
   useEffect(() => {
     if (!enabled || !room) return
 
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3002"
     const ydoc = new Y.Doc()
-    const provider = new WebsocketProvider(wsUrl, room, ydoc)
-    const ytext = ydoc.getText("codemirror")
-    const undoManager = new Y.UndoManager(ytext)
+    const wsProvider = new WebsocketProvider(wsUrl, room, ydoc)
+    const text = ydoc.getText("codemirror")
+    const um = new Y.UndoManager(text)
 
     ydocRef.current = ydoc
-    providerRef.current = provider
-    undoManagerRef.current = undoManager
-
-    // Set local awareness
-    provider.awareness.setLocalStateField("user", {
-      name: username,
-      color: getRandomColor(),
-    })
+    providerRef.current = wsProvider
+    undoManagerRef.current = um
+    setYtext(text)
+    setProvider(wsProvider)
+    setUndoManager(um)
 
     // Track connected users
     const updateUsers = () => {
-      const states = provider.awareness.getStates()
+      const states = wsProvider.awareness.getStates()
       const users: CollabUser[] = []
       states.forEach((state) => {
         if (state.user) {
@@ -61,26 +64,40 @@ export function useCollaboration(
       setConnectedUsers(users)
     }
 
-    provider.awareness.on("change", updateUsers)
-    provider.on("sync", (isSynced: boolean) => {
+    wsProvider.awareness.on("change", updateUsers)
+    wsProvider.on("sync", (isSynced: boolean) => {
       setIsConnected(isSynced)
       if (isSynced) updateUsers()
     })
 
-    provider.on("status", ({ status }: { status: string }) => {
+    wsProvider.on("status", ({ status }: { status: string }) => {
       setIsConnected(status === "connected")
     })
 
     return () => {
-      provider.awareness.off("change", updateUsers)
-      provider.disconnect()
-      provider.destroy()
+      wsProvider.awareness.off("change", updateUsers)
+      wsProvider.disconnect()
+      wsProvider.destroy()
       ydoc.destroy()
       ydocRef.current = null
       providerRef.current = null
       undoManagerRef.current = null
+      setYtext(null)
+      setProvider(null)
+      setUndoManager(null)
+      setIsConnected(false)
+      setConnectedUsers([])
     }
-  }, [room, username, enabled])
+  }, [room, enabled])
+
+  // Awareness identity updates independently of the connection
+  useEffect(() => {
+    if (!provider || !username) return
+    provider.awareness.setLocalStateField("user", {
+      name: username,
+      color: colorRef.current,
+    })
+  }, [provider, username])
 
   const getYText = useCallback(() => {
     return ydocRef.current?.getText("codemirror") || null
@@ -101,6 +118,9 @@ export function useCollaboration(
   return {
     connectedUsers,
     isConnected,
+    ytext,
+    provider,
+    undoManager,
     getYText,
     getYDoc,
     getProvider,

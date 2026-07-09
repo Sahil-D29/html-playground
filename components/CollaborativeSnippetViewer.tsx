@@ -10,8 +10,6 @@ import ChangeHistory from "./ChangeHistory"
 import Preview from "./Preview"
 import SaveSnippetButton from "./SaveSnippetButton"
 import NamePrompt from "./NamePrompt"
-import * as Y from "yjs"
-import { WebsocketProvider } from "y-websocket"
 
 export default function CollaborativeSnippetViewer({
   id,
@@ -51,28 +49,18 @@ export default function CollaborativeSnippetViewer({
   }, [])
 
   // Collaboration setup
-  const { connectedUsers, isConnected, getYDoc, getUndoManager, getYText, getProvider } =
+  const { connectedUsers, isConnected, ytext, provider, undoManager, getYDoc } =
     useCollaboration(shortId, username, true)
 
-  const [ytext, setYtext] = useState<Y.Text | null>(null)
-  const [provider, setProvider] = useState<WebsocketProvider | null>(null)
-  const [undoManager, setUndoManager] = useState<Y.UndoManager | null>(null)
-
-  // Sync yjs instances from hook into state
+  // Drive the preview straight from the Yjs doc so it stays live
+  // even when the code editor is hidden (text mode)
   useEffect(() => {
-    const interval = setInterval(() => {
-      const yt = getYText()
-      const prov = getProvider()
-      const um = getUndoManager()
-      if (yt && prov && um) {
-        setYtext(yt)
-        setProvider(prov)
-        setUndoManager(um)
-        clearInterval(interval)
-      }
-    }, 100)
-    return () => clearInterval(interval)
-  }, [getYText, getProvider, getUndoManager])
+    if (!ytext) return
+    const update = () => setHtml(ytext.toString())
+    if (ytext.length > 0) update()
+    ytext.observe(update)
+    return () => ytext.unobserve(update)
+  }, [ytext])
 
   const handleContentChange = useCallback((content: string) => {
     setHtml(content)
@@ -105,9 +93,22 @@ export default function CollaborativeSnippetViewer({
     }
   }, [ytext, syncMode, shortId, username])
 
-  const handlePreviewEdit = useCallback((val: string) => {
-    setHtml(val)
-  }, [])
+  // Preview (text-mode) edits must go through the Yjs doc, otherwise
+  // they never reach other collaborators or the save/sync pipeline
+  const handlePreviewEdit = useCallback(
+    (val: string) => {
+      const ydoc = getYDoc()
+      if (ydoc && ytext) {
+        ydoc.transact(() => {
+          ytext.delete(0, ytext.length)
+          ytext.insert(0, val)
+        })
+      } else {
+        setHtml(val)
+      }
+    },
+    [getYDoc, ytext]
+  )
 
   // Save: reads directly from ytext (live content, not stale state)
   const handleSave = useCallback(async () => {
@@ -132,7 +133,6 @@ export default function CollaborativeSnippetViewer({
   const handleRestore = useCallback(
     (restoredHtml: string) => {
       const ydoc = getYDoc()
-      const um = getUndoManager()
       if (ydoc) {
         const yt = ydoc.getText("codemirror")
         ydoc.transact(() => {
@@ -143,7 +143,7 @@ export default function CollaborativeSnippetViewer({
         toast("Version restored!", "success")
       }
     },
-    [getYDoc, getUndoManager, toast]
+    [getYDoc, toast]
   )
 
   // Push to Main: reads directly from ytext (live content, not stale state)
