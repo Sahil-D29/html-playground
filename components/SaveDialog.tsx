@@ -53,10 +53,6 @@ export default function SaveDialog({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [saved, setSaved] = useState(false)
-  const [savedData, setSavedData] = useState<{
-    shortId?: string
-    permission?: string
-  }>({})
   const [showCreateProject, setShowCreateProject] = useState(false)
 
   useEffect(() => {
@@ -88,7 +84,6 @@ export default function SaveDialog({
         })
         if (!res.ok) throw new Error("Failed to save snippet")
         const data = await res.json()
-        setSavedData({ shortId: data.shortId, permission })
         onSaved?.({
           title: data.title,
           shortId: data.shortId,
@@ -150,13 +145,6 @@ export default function SaveDialog({
     onSaved,
   ])
 
-  const handleCopyShareLink = useCallback(async () => {
-    if (savedData.shortId) {
-      const url = `${window.location.origin}/snippets/${savedData.shortId}`
-      await navigator.clipboard.writeText(url)
-    }
-  }, [savedData])
-
   const handleClose = useCallback(() => {
     setMode(initialFileId ? "project" : "snippet")
     setSelectedProject(initialProjectId || "")
@@ -165,7 +153,6 @@ export default function SaveDialog({
     setPermission("view")
     setError("")
     setSaved(false)
-    setSavedData({})
     onClose()
   }, [onClose, initialFileId, initialProjectId])
 
@@ -233,35 +220,6 @@ export default function SaveDialog({
               <p className="text-sm text-gray-600 dark:text-gray-300">
                 {isEditingFile ? "File updated!" : "Saved successfully!"}
               </p>
-
-              {!isEditingFile && mode === "snippet" && savedData.shortId && (
-                <div className="mt-4 space-y-2">
-                  <button
-                    onClick={handleCopyShareLink}
-                    className="btn-primary w-full text-sm"
-                  >
-                    <svg
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"
-                      />
-                    </svg>
-                    Copy Share Link
-                  </button>
-                  <p className="text-[10px] text-gray-400 dark:text-gray-500">
-                    {savedData.permission === "edit"
-                      ? "Anyone with this link can edit"
-                      : "Anyone with this link can view"}
-                  </p>
-                </div>
-              )}
 
               <button
                 onClick={handleClose}

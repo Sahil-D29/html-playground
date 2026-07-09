@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import CodeMirror from "@uiw/react-codemirror"
 import { html } from "@codemirror/lang-html"
 import { css } from "@codemirror/lang-css"
@@ -8,7 +7,6 @@ import { javascript } from "@codemirror/lang-javascript"
 import { oneDark } from "@codemirror/theme-one-dark"
 import { EditorView } from "@codemirror/view"
 import { useTheme } from "@/components/ThemeProvider"
-import CollaborativeEditor from "./CollaborativeEditor"
 
 const lightTheme = EditorView.theme({
   "&": { backgroundColor: "#ffffff" },
@@ -31,29 +29,12 @@ export default function Editor({
   value,
   onChange,
   lang = "html",
-  collaboration,
 }: {
   value: string
   onChange: (val: string) => void
   lang?: "html" | "css" | "js"
-  collaboration?: {
-    room: string
-    username: string
-    onContentChange?: (html: string) => void
-  }
 }) {
   const { theme } = useTheme()
-
-  if (collaboration) {
-    return (
-      <CollaborativeEditor
-        room={collaboration.room}
-        username={collaboration.username}
-        lang={lang}
-        onContentChange={collaboration.onContentChange}
-      />
-    )
-  }
 
   return (
     <CodeMirror

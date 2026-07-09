@@ -10,6 +10,8 @@ import ChangeHistory from "./ChangeHistory"
 import Preview from "./Preview"
 import SaveSnippetButton from "./SaveSnippetButton"
 import NamePrompt from "./NamePrompt"
+import * as Y from "yjs"
+import { WebsocketProvider } from "y-websocket"
 
 export default function CollaborativeSnippetViewer({
   id,
@@ -48,24 +50,31 @@ export default function CollaborativeSnippetViewer({
   }, [])
 
   // Collaboration setup
-  const { connectedUsers, isConnected, getYDoc, getUndoManager } =
+  const { connectedUsers, isConnected, getYDoc, getUndoManager, getYText, getProvider } =
     useCollaboration(shortId, username, true)
 
-  // Listen for content changes from the collaborative editor
+  const [ytext, setYtext] = useState<Y.Text | null>(null)
+  const [provider, setProvider] = useState<WebsocketProvider | null>(null)
+  const [undoManager, setUndoManager] = useState<Y.UndoManager | null>(null)
+
+  // Sync yjs instances from hook into state
   useEffect(() => {
-    const handler = (e: CustomEvent) => {
-      setHtml(e.detail)
-    }
-    window.addEventListener("collab-content-change" as any, handler)
-    return () => window.removeEventListener("collab-content-change" as any, handler)
-  }, [])
+    const interval = setInterval(() => {
+      const yt = getYText()
+      const prov = getProvider()
+      const um = getUndoManager()
+      if (yt && prov && um) {
+        setYtext(yt)
+        setProvider(prov)
+        setUndoManager(um)
+        clearInterval(interval)
+      }
+    }, 100)
+    return () => clearInterval(interval)
+  }, [getYText, getProvider, getUndoManager])
 
   const handleContentChange = useCallback((content: string) => {
     setHtml(content)
-    // Dispatch for preview sync
-    window.dispatchEvent(
-      new CustomEvent("collab-content-change", { detail: content })
-    )
   }, [])
 
   const handlePreviewEdit = useCallback((val: string) => {
@@ -233,12 +242,25 @@ export default function CollaborativeSnippetViewer({
             </span>
           </div>
           <div className="relative flex-1 min-h-0">
-            <CollaborativeEditor
-              room={shortId}
-              username={username}
-              lang="html"
-              onContentChange={handleContentChange}
-            />
+            {ytext && provider && undoManager ? (
+              <CollaborativeEditor
+                ytext={ytext}
+                provider={provider}
+                undoManager={undoManager}
+                lang="html"
+                onContentChange={handleContentChange}
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Connecting...
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

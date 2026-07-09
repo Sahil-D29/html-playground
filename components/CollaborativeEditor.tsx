@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useCallback, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import CodeMirror from "@uiw/react-codemirror"
 import { html } from "@codemirror/lang-html"
 import { css } from "@codemirror/lang-css"
@@ -30,82 +30,30 @@ const extensions: Record<string, ReturnType<typeof html>> = {
 }
 
 export default function CollaborativeEditor({
-  room,
-  username,
+  ytext,
+  provider,
+  undoManager,
   lang = "html",
   onContentChange,
 }: {
-  room: string
-  username: string
+  ytext: Y.Text
+  provider: WebsocketProvider
+  undoManager: Y.UndoManager
   lang?: "html" | "css" | "js"
   onContentChange?: (html: string) => void
 }) {
   const { theme } = useTheme()
-  const [provider, setProvider] = useState<WebsocketProvider | null>(null)
-  const [ydoc, setYdoc] = useState<Y.Doc | null>(null)
-  const [ytext, setYtext] = useState<Y.Text | null>(null)
-  const [undoManager, setUndoManager] = useState<Y.UndoManager | null>(null)
-  const [synced, setSynced] = useState(false)
   const changeCallbackRef = useRef(onContentChange)
   changeCallbackRef.current = onContentChange
 
+  // Sync content changes to preview
   useEffect(() => {
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3002"
-    const doc = new Y.Doc()
-    const wsProvider = new WebsocketProvider(wsUrl, room, doc)
-    const text = doc.getText("codemirror")
-    const um = new Y.UndoManager(text)
-
-    wsProvider.awareness.setLocalStateField("user", {
-      name: username,
-      color: "#ffb61e",
-      colorLight: "#ffb61e40",
-    })
-
-    wsProvider.on("sync", (isSynced: boolean) => {
-      setSynced(isSynced)
-    })
-
-    // Sync content changes to preview
-    text.observe(() => {
-      changeCallbackRef.current?.(text.toString())
-    })
-
-    setYdoc(doc)
-    setProvider(wsProvider)
-    setYtext(text)
-    setUndoManager(um)
-
-    return () => {
-      wsProvider.disconnect()
-      wsProvider.destroy()
-      doc.destroy()
+    const handler = () => {
+      changeCallbackRef.current?.(ytext.toString())
     }
-  }, [room, username])
-
-  // Expose ydoc and undoManager for parent components
-  useEffect(() => {
-    if (ydoc && undoManager) {
-      const event = new CustomEvent("collab-ready", {
-        detail: { ydoc, undoManager, ytext, provider },
-      })
-      window.dispatchEvent(event)
-    }
-  }, [ydoc, undoManager, ytext, provider])
-
-  if (!provider || !ytext || !undoManager) {
-    return (
-      <div className="flex h-full items-center justify-center bg-gray-50 dark:bg-surface">
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          Connecting to collaboration server...
-        </div>
-      </div>
-    )
-  }
+    ytext.observe(handler)
+    return () => ytext.unobserve(handler)
+  }, [ytext])
 
   return (
     <CodeMirror
