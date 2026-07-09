@@ -48,6 +48,9 @@ export default function CollaborativeEditor({
 
   // Sync content changes to preview
   useEffect(() => {
+    // Fire once on mount with current content (may have been synced from server)
+    changeCallbackRef.current?.(ytext.toString())
+
     const handler = () => {
       changeCallbackRef.current?.(ytext.toString())
     }

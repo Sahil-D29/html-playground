@@ -9,15 +9,27 @@ const syncTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
 export async function bindState(docName: string, ydoc: Y.Doc) {
   try {
-    const row = await prisma.$queryRaw<{ state: Buffer }[]>`
-      SELECT state FROM "Snippet"
+    const rows = await prisma.$queryRaw<{ state: Buffer | null; html: string }[]>`
+      SELECT state, html FROM "Snippet"
       WHERE "shortId" = ${docName}
       LIMIT 1
     `
 
-    if (row.length > 0 && row[0].state) {
-      const state = new Uint8Array(row[0].state)
-      Y.applyUpdate(ydoc, state)
+    if (rows.length > 0) {
+      const row = rows[0]
+      if (row.state) {
+        // Load persisted Yjs binary state
+        const state = new Uint8Array(row.state)
+        Y.applyUpdate(ydoc, state)
+      } else if (row.html) {
+        // No Yjs state yet — seed the doc with the existing HTML
+        const ytext = ydoc.getText("codemirror")
+        if (ytext.length === 0) {
+          ydoc.transact(() => {
+            ytext.insert(0, row.html)
+          })
+        }
+      }
     }
   } catch {
     // Snippet may not exist yet — that's fine
