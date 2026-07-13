@@ -50,7 +50,6 @@ export default function Preview({
   onEdit?: (html: string) => void
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const [key, setKey] = useState(0)
   const editableRef = useRef(!!editable)
   const [committedHtml, setCommittedHtml] = useState(
     editable ? injectEditScript(html) : html
@@ -66,14 +65,12 @@ export default function Preview({
     } else {
       setCommittedHtml(html)
     }
-    setKey((k) => k + 1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editable])
 
   useLayoutEffect(() => {
     if (editableRef.current) return
     setCommittedHtml(html)
-    setKey((k) => k + 1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [html])
 
@@ -119,7 +116,6 @@ export default function Preview({
       )}
       <div className="flex-1">
         <iframe
-          key={key}
           ref={iframeRef}
           sandbox="allow-scripts"
           srcDoc={committedHtml}

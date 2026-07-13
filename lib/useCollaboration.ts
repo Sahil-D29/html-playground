@@ -52,8 +52,11 @@ export function useCollaboration(
     setProvider(wsProvider)
     setUndoManager(um)
 
-    // Track connected users
+    const throttleRef = { current: 0 }
     const updateUsers = () => {
+      const now = Date.now()
+      if (now - throttleRef.current < 500) return
+      throttleRef.current = now
       const states = wsProvider.awareness.getStates()
       const users: CollabUser[] = []
       states.forEach((state) => {

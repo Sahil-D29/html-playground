@@ -52,16 +52,6 @@ export default function CollaborativeSnippetViewer({
   const { connectedUsers, isConnected, ytext, provider, undoManager, getYDoc } =
     useCollaboration(shortId, username, true)
 
-  // Drive the preview straight from the Yjs doc so it stays live
-  // even when the code editor is hidden (text mode)
-  useEffect(() => {
-    if (!ytext) return
-    const update = () => setHtml(ytext.toString())
-    if (ytext.length > 0) update()
-    ytext.observe(update)
-    return () => ytext.unobserve(update)
-  }, [ytext])
-
   const handleContentChange = useCallback((content: string) => {
     setHtml(content)
   }, [])
